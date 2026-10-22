@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calculadora de precios de venta</title>
-<meta name="description" content="Calculadora de precios de reventa en Argentina: costos, envío, packaging, comisiones, promos y cuotas, con IVA incluido.">
+<meta name="description" content="Calculadora de precios de reventa en Argentina: costos, envío, packaging, comisiones, promos y cuotas. Precios finales en pesos argentinos.">
 <meta name="theme-color" content="#0b1220">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>">
@@ -386,18 +386,19 @@
     background: rgba(248, 113, 113, .12); border: 1px solid rgba(248, 113, 113, .32); color: #fca5a5;
   }
 
-  details.iva { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(148, 163, 184, .16); }
-  details.iva summary {
-    cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
-    font-size: 13px; font-weight: 700; color: #7dd3fc; user-select: none;
+  .iva-toggle {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 20px; padding-top: 16px;
+    border-top: 1px solid rgba(148, 163, 184, .16);
+    font-size: 12.5px; color: #94a3b8; cursor: pointer; user-select: none;
   }
-  details.iva summary::-webkit-details-marker { display: none; }
-  details.iva summary::before { content: "▸"; font-size: 11px; transition: transform .15s; }
-  details.iva[open] summary::before { transform: rotate(90deg); }
-  .iva-body { margin-top: 14px; display: grid; gap: 9px; font-size: 13px; color: #cbd5e1; }
+  .iva-toggle input { width: 15px; height: 15px; accent-color: #38bdf8; cursor: pointer; }
+  .iva-panel { margin-top: 12px; }
+  .iva-body { display: grid; gap: 9px; font-size: 13px; color: #cbd5e1; }
   .iva-row { display: flex; justify-content: space-between; gap: 12px; }
   .iva-row strong { font-variant-numeric: tabular-nums; color: #f1f5f9; }
   .iva-note { margin: 8px 0 0; font-size: 12px; line-height: 1.55; color: #94a3b8; }
+  .iva-note strong { color: #cbd5e1; }
 
   /* ---------- Catálogo ---------- */
   .catalog-wrap { padding-bottom: 8px; }
@@ -467,7 +468,7 @@
 <header class="top wrap">
   <div class="head-text">
     <h1>🧮 Calculadora de precios de venta</h1>
-    <p class="sub">Reventa en Argentina · Precios finales con IVA incluido · Pesos argentinos</p>
+    <p class="sub">Reventa en Argentina · Precios finales en pesos argentinos</p>
   </div>
   <div class="head-actions">
     <button type="button" id="installBtn" class="pill-btn" hidden>⬇ Instalar app</button>
@@ -740,15 +741,18 @@
 
       <div class="warn" id="warn" hidden></div>
 
-      <details class="iva">
-        <summary>Desglose IVA (21%)</summary>
+      <label class="iva-toggle">
+        <input type="checkbox" id="mostrarIva">
+        <span>Mostrar desglose de IVA (21%)</span>
+      </label>
+      <div class="iva-panel" id="ivaPanel" hidden>
         <div class="iva-body">
-          <div class="iva-row"><span>Precio final (con IVA)</span><strong id="ivaFinal">—</strong></div>
+          <div class="iva-row"><span>Precio final</span><strong id="ivaFinal">—</strong></div>
           <div class="iva-row"><span>Neto sin IVA</span><strong id="ivaNeto">—</strong></div>
-          <div class="iva-row"><span>IVA (21%)</span><strong id="ivaIva">—</strong></div>
-          <p class="iva-note">Si sos monotributista, el IVA ya está incluido en tu precio y no tenés que separarlo. Si sos responsable inscripto, la última línea es la parte del precio que va a AFIP.</p>
+          <div class="iva-row"><span>IVA contenido (21%)</span><strong id="ivaIva">—</strong></div>
+          <p class="iva-note">El IVA ya está incluido en el precio: <strong>no se suma</strong>. Este desglose es solo informativo.</p>
         </div>
-      </details>
+      </div>
     </div>
   </aside>
 
@@ -780,7 +784,7 @@
     <div class="ps-cuotas" id="psCuotas" hidden></div>
   </div>
   <div class="ps-includes" id="psEnvio" hidden>Incluye envío.</div>
-  <p class="ps-note">Precios en pesos argentinos, IVA incluido. Validez del presupuesto: 7 días.</p>
+  <p class="ps-note">Precios en pesos argentinos. Validez del presupuesto: 7 días.</p>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -796,7 +800,6 @@
   /* ---------- formato ---------- */
   var fmtARS  = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 2 });
   var fmtARS0 = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  var fmtARS2 = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2 });
   var fmtNum  = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
   var fmtInt  = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
   var fmtPct  = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
@@ -804,8 +807,10 @@
   var LS_FORM = 'calcCostos.form';
   var LS_PRODUCTS = 'calcCostos.products';
   var LS_THEME = 'calcCostos.theme';
+  var LS_IVA = 'calcCostos.iva';
 
   var state = { moneda: 'ARS', envioModo: 'pedido', modo: 'precio' };
+  var ivaVisible = false;
   var editId = null;
   var products = [];
   var last = null;
@@ -1345,7 +1350,6 @@
       price: last.precioFinal,
       envio: last.envioUnit > 0,
       cuotas: (last.precioFinal > 0 && lastData.cuotas > 1) ? last.cuotas : null,
-      iva: last.iva.iva,
       fecha: new Date()
     };
   }
@@ -1412,7 +1416,7 @@
 
     setFont(500, 34);
     ctx.fillStyle = '#94a3b8';
-    ctx.fillText('IVA incluido · Pesos argentinos', 84, 625);
+    ctx.fillText('Pesos argentinos', 84, 625);
 
     ctx.strokeStyle = 'rgba(148, 163, 184, .3)';
     ctx.lineWidth = 2;
@@ -1429,7 +1433,6 @@
         fmtARS.format(info.cuotas.valor) + ' c/u'
       ]);
     }
-    rows.push(['IVA contenido (21%)', fmtARS2.format(info.iva)]);
 
     var ry = 790;
     rows.forEach(function (row) {
@@ -1659,6 +1662,12 @@
     $('btnPdf').addEventListener('click', printQuote);
     $('themeBtn').addEventListener('click', toggleTheme);
 
+    $('mostrarIva').addEventListener('change', function () {
+      ivaVisible = $('mostrarIva').checked;
+      $('ivaPanel').hidden = !ivaVisible;
+      try { localStorage.setItem(LS_IVA, ivaVisible ? '1' : '0'); } catch (e) {}
+    });
+
     $('limpiar').addEventListener('click', function () {
       if (!window.confirm('¿Vaciar los campos? Los productos guardados no se borran.')) return;
       editId = null;
@@ -1727,6 +1736,10 @@
       syncCalcModoUI();
       syncEnvioUI();
     }
+
+    try { ivaVisible = localStorage.getItem(LS_IVA) === '1'; } catch (e) {}
+    $('mostrarIva').checked = ivaVisible;
+    $('ivaPanel').hidden = !ivaVisible;
 
     syncThemeBtn();
     formatInitialInputs();

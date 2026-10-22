@@ -1,6 +1,6 @@
 # 🧮 Calculadora de precios de venta — Reventa Argentina
 
-Calculadora local para definir precios de reventa en pesos argentinos, con IVA incluido.
+Calculadora local para definir precios de reventa en pesos argentinos. El IVA nunca se suma al precio: tus costos ya lo incluyen.
 
 ## Cómo usarla
 
@@ -19,7 +19,7 @@ Los datos (productos guardados y último formulario) quedan en el navegador (`lo
 - **Cantidad de unidades** del pedido.
 
 ### Precios
-- **Precio de venta final** con margen sobre el precio final: `costo ÷ (1 − margen)`.
+- **Precio de venta final** con margen sobre el precio final: `costo ÷ (1 − margen)`. El IVA no se suma: ya está incluido en el costo.
 - **Precio de reventa** para otras revendedoras, con su propio margen.
 - **Comisión del canal**: venta directa 0%, Mercado Libre 13%, tienda propia 3% u otro %.
 - **Descuento para promos**: muestra el precio con descuento y el margen que queda.
@@ -30,7 +30,7 @@ Los datos (productos guardados y último formulario) quedan en el navegador (`lo
 ### Resultados
 - Precio final, costo unitario, ganancia por unidad y total del pedido.
 - Barra de desglose: producto, transferencia, envío, bolsa, sticker, comisión y ganancia.
-- Desglose opcional de IVA 21% (para responsables inscriptos).
+- Desglose de IVA 21% opcional y oculto por defecto (solo informativo: el IVA no se suma al precio).
 - Avisos si el precio queda por debajo del costo, si el margen + comisión superan el 100%, o si los costos guardados tienen más de 30 días.
 
 ### Guardado y exportación
