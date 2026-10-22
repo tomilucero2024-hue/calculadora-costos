@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de precios de venta</title>
+<meta name="description" content="Calculadora de precios de reventa en Argentina: costos, envío, packaging, comisiones, promos y cuotas, con IVA incluido.">
+<meta name="theme-color" content="#0b1220">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('calcCostos.theme');
+    if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<style>
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  :root {
+    color-scheme: light;
+    --bg: #eef2f7;
+    --bg-glow: #dbeafe;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --field: #f8fafc;
+    --field-focus: #ffffff;
+    --chip-bg: #eef2f7;
+    --accent: #0284c7;
+    --accent-ink: #0369a1;
+    --accent-ring: rgba(2, 132, 199, .16);
+    --accent-grad-1: #0ea5e9;
+    --accent-grad-2: #0369a1;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --danger-line: #fecaca;
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 30px -18px rgba(15, 23, 42, .18);
+    --res-bg1: #0b1220;
+    --res-bg2: #121f38;
+    --res-border: #1e293b;
+    --c-producto: #38bdf8;
+    --c-transferencia: #94a3b8;
+    --c-envio: #fbbf24;
+    --c-bolsa: #a78bfa;
+    --c-sticker: #f472b6;
+    --c-comision: #f97316;
+    --c-ganancia: #34d399;
+    --radius: 18px;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #070d18;
+    --bg-glow: #0d1c32;
+    --card: #0f1726;
+    --ink: #e2e8f0;
+    --muted: #8ea3bd;
+    --line: #1f2c42;
+    --field: #0b1422;
+    --field-focus: #0d1929;
+    --chip-bg: #0a1320;
+    --accent: #38bdf8;
+    --accent-ink: #7dd3fc;
+    --accent-ring: rgba(56, 189, 248, .18);
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, .1);
+    --danger-line: rgba(248, 113, 113, .35);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 16px 40px -24px rgba(0, 0, 0, .6);
+    --res-bg1: #0a111f;
+    --res-bg2: #101d33;
+    --res-border: #22314a;
+  }
+
+  html, body { margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 500px at 85% -10%, var(--bg-glow) 0%, transparent 60%),
+      var(--bg);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color .2s;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- Encabezado ---------- */
+  header.top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; padding: 42px 0 24px; flex-wrap: wrap;
+  }
+  .head-text { min-width: 0; }
+  h1 { margin: 0 0 8px; font-size: clamp(23px, 3.4vw, 30px); letter-spacing: -0.02em; }
+  .sub { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+  .head-actions { display: flex; align-items: center; gap: 10px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--card);
+    cursor: pointer; font-size: 17px; display: grid; place-items: center;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+    transition: border-color .15s, transform .1s;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn:active { transform: scale(.94); }
+  .pill-btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--accent-ink);
+    border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 13px;
+    font-weight: 700; cursor: pointer; transition: border-color .15s;
+  }
+  .pill-btn:hover { border-color: var(--accent); }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    max-width: 1080px; margin: 0 auto; padding: 0 20px 28px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 24px; align-items: start;
+  }
+  @media (max-width: 920px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Tarjetas ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+  }
+  .sec + .sec { margin-top: 26px; padding-top: 24px; border-top: 1px dashed var(--line); }
+  .sec h2 {
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--muted); margin: 0 0 16px; font-weight: 700;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .grid3 { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .label small { font-weight: 500; color: var(--muted); }
+  .hint { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- Inputs ---------- */
+  .money {
+    display: flex; align-items: center;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--field);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .money:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-ring);
+    background: var(--field-focus);
+  }
+  .money .prefix { padding-left: 12px; color: var(--muted); font-weight: 700; font-size: 15px; }
+  .money input {
+    border: 0; outline: 0; background: transparent;
+    padding: 11px 12px 11px 6px; width: 100%; min-width: 0;
+    font: inherit; font-size: 16px; font-weight: 650; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .money input.no-prefix { padding-left: 12px; }
+  .money.small { flex: none; width: 96px; }
+  .money.small input { padding: 9px 4px 9px 10px; font-size: 15px; text-align: right; }
+  .money .suffix { padding-right: 12px; color: var(--muted); font-weight: 700; font-size: 15px; }
+
+  .text-input {
+    width: 100%; font: inherit; font-size: 15.5px; font-weight: 500; color: var(--ink);
+    padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--field); outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); background: var(--field-focus); }
+  input::placeholder { color: var(--muted); opacity: .7; font-weight: 400; }
+
+  /* ---------- Segmentados ---------- */
+  .segmented {
+    display: inline-flex; gap: 3px; padding: 3px; max-width: 100%;
+    background: var(--chip-bg); border: 1px solid var(--line); border-radius: 12px;
+  }
+  .seg-btn {
+    border: 0; background: transparent; cursor: pointer;
+    padding: 8px 14px; border-radius: 9px;
+    font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted);
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .seg-btn.active { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(15, 23, 42, .14); }
+
+  .mini-seg {
+    display: inline-flex; gap: 2px; padding: 2px; flex: none;
+    background: var(--chip-bg); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .money .mini-seg { margin-right: 7px; }
+  .mini {
+    border: 0; background: transparent; cursor: pointer;
+    font: inherit; font-size: 11px; font-weight: 700; color: var(--muted);
+    padding: 3px 8px; border-radius: 6px; letter-spacing: .02em;
+    transition: background .15s, color .15s;
+  }
+  .mini.active { background: var(--card); color: var(--accent); box-shadow: 0 1px 2px rgba(15, 23, 42, .14); }
+
+  /* ---------- Slider ---------- */
+  .margin-row { display: flex; align-items: center; gap: 16px; }
+  input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); height: 28px; cursor: pointer; }
+
+  /* ---------- Select ---------- */
+  select {
+    width: 100%; font: inherit; font-size: 15px; font-weight: 600; color: var(--ink);
+    padding: 11px 38px 11px 12px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background-color: var(--field); cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    transition: border-color .15s, box-shadow .15s, background-color .15s;
+  }
+  select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); background-color: var(--field-focus); }
+
+  .check {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    font-size: 13px; color: var(--muted); cursor: pointer; user-select: none;
+  }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+  /* ---------- Sección plegable ---------- */
+  details.sec-details { margin-top: 26px; padding-top: 24px; border-top: 1px dashed var(--line); }
+  details.sec-details summary {
+    list-style: none; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: .09em;
+    font-weight: 700; color: var(--muted);
+  }
+  details.sec-details summary::-webkit-details-marker { display: none; }
+  details.sec-details summary::before { content: "▸"; font-size: 11px; transition: transform .15s; }
+  details.sec-details[open] summary::before { transform: rotate(90deg); }
+  details.sec-details .details-body { padding-top: 16px; }
+  .badge {
+    text-transform: none; letter-spacing: 0; font-size: 11px; font-weight: 700;
+    background: var(--accent-ring); color: var(--accent-ink);
+    padding: 2px 9px; border-radius: 999px;
+  }
+
+  /* ---------- Pie del formulario ---------- */
+  .form-foot {
+    margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--line);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .edit-note {
+    font-size: 12.5px; color: var(--muted); min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+  }
+  .foot-actions { display: flex; gap: 10px; margin-left: auto; }
+  .ghost {
+    font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted);
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 16px; cursor: pointer; transition: all .15s;
+  }
+  .ghost:hover { color: var(--danger); border-color: var(--danger-line); background: var(--danger-bg); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent-grad-1), var(--accent-grad-2));
+    color: #fff; border: 0; border-radius: 11px; padding: 10px 16px;
+    font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 8px 18px -10px rgba(2, 132, 199, .7);
+    transition: filter .15s, transform .05s;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:active { transform: translateY(1px); }
+
+  /* ---------- Panel de resultados ---------- */
+  .res-card {
+    background: linear-gradient(160deg, var(--res-bg1) 0%, var(--res-bg2) 100%);
+    border: 1px solid var(--res-border);
+    border-radius: var(--radius);
+    padding: 26px; color: #e2e8f0;
+    box-shadow: 0 24px 48px -24px rgba(11, 18, 32, .55);
+    position: sticky; top: 20px;
+  }
+  @media (max-width: 920px) { .res-card { position: static; } }
+  @media (max-height: 880px) { .res-card { position: static; } }
+
+  .res-name { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 3px; overflow-wrap: anywhere; }
+  .res-updated { font-size: 11.5px; color: #7c8fa9; margin-bottom: 12px; }
+  .res-updated.stale { color: #fbbf24; }
+  .res-label { font-size: 12px; text-transform: uppercase; letter-spacing: .11em; font-weight: 700; color: #7dd3fc; }
+  .hero-price {
+    font-size: clamp(36px, 6vw, 46px); font-weight: 800; letter-spacing: -0.03em;
+    color: #fff; margin: 8px 0 4px; font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .hero-price.neg { color: #f87171; }
+  .sugerido { font-size: 13px; color: #94a3b8; margin-bottom: 16px; font-variant-numeric: tabular-nums; min-height: 1px; }
+
+  .res-actions { display: flex; gap: 8px; margin: 0 0 18px; flex-wrap: wrap; }
+  .res-btn {
+    flex: 1; min-width: 92px;
+    background: rgba(148, 163, 184, .1);
+    border: 1px solid rgba(148, 163, 184, .2);
+    color: #e2e8f0; border-radius: 10px; padding: 9px 8px;
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+  }
+  .res-btn:hover { background: rgba(148, 163, 184, .2); }
+  .res-btn.save { background: rgba(52, 211, 153, .14); border-color: rgba(52, 211, 153, .35); color: #6ee7b7; }
+  .res-btn.save:hover { background: rgba(52, 211, 153, .22); }
+
+  .stats { display: grid; gap: 10px; margin: 0 0 18px; }
+  .stat {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    padding: 10px 13px; border-radius: 12px;
+    background: rgba(148, 163, 184, .08);
+    border: 1px solid rgba(148, 163, 184, .14);
+  }
+  .stat span { font-size: 13px; color: #94a3b8; }
+  .stat strong { font-size: 16px; color: #f1f5f9; font-variant-numeric: tabular-nums; text-align: right; }
+  #ganUnit, #ganTotal { color: var(--c-ganancia); }
+  #ganUnit.neg, #ganTotal.neg { color: #f87171; }
+
+  .resale {
+    margin: 0 0 16px; padding: 12px 14px; border-radius: 12px;
+    background: rgba(56, 189, 248, .08);
+    border: 1px dashed rgba(56, 189, 248, .32);
+  }
+  .resale-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .resale-label {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+    font-weight: 700; color: #7dd3fc;
+  }
+  .resale-margin { font-size: 12px; color: #94a3b8; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .resale-price {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: #fff;
+    margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+  }
+  .resale-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; font-variant-numeric: tabular-nums; line-height: 1.45; }
+  .resale.invalid .resale-price { color: #94a3b8; }
+
+  .scenarios { display: grid; gap: 8px; margin: 0 0 18px; }
+  .scenario {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    font-size: 12.5px; color: #cbd5e1;
+    background: rgba(148, 163, 184, .07);
+    border: 1px dashed rgba(148, 163, 184, .22);
+    border-radius: 10px; padding: 8px 12px;
+  }
+  .scenario strong { color: #f1f5f9; font-variant-numeric: tabular-nums; }
+  .scenario small { color: #94a3b8; }
+  .sc-margin { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sc-margin.pos { color: var(--c-ganancia); }
+  .sc-margin.neg { color: #f87171; }
+
+  .bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: rgba(148, 163, 184, .16); }
+  .seg { width: 0; transition: width .3s ease; }
+  .seg[data-k="producto"] { background: var(--c-producto); }
+  .seg[data-k="transferencia"] { background: var(--c-transferencia); }
+  .seg[data-k="envio"]    { background: var(--c-envio); }
+  .seg[data-k="bolsa"]    { background: var(--c-bolsa); }
+  .seg[data-k="sticker"]  { background: var(--c-sticker); }
+  .seg[data-k="comision"] { background: var(--c-comision); }
+  .seg[data-k="ganancia"] { background: var(--c-ganancia); }
+
+  .legend { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 9px; }
+  .legend li { display: flex; align-items: center; gap: 9px; font-size: 13px; color: #cbd5e1; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .leg[data-k="producto"] .dot { background: var(--c-producto); }
+  .leg[data-k="transferencia"] .dot { background: var(--c-transferencia); }
+  .leg[data-k="envio"] .dot    { background: var(--c-envio); }
+  .leg[data-k="bolsa"] .dot    { background: var(--c-bolsa); }
+  .leg[data-k="sticker"] .dot  { background: var(--c-sticker); }
+  .leg[data-k="comision"] .dot { background: var(--c-comision); }
+  .leg[data-k="ganancia"] .dot { background: var(--c-ganancia); }
+  .legend .amt { margin-left: auto; font-weight: 700; color: #e2e8f0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .legend .pct { width: 46px; text-align: right; color: #94a3b8; font-variant-numeric: tabular-nums; flex: none; }
+  .leg[data-k="ganancia"] .amt { color: var(--c-ganancia); }
+  .leg[data-k="ganancia"].neg .amt { color: #f87171; }
+
+  .warn {
+    margin-top: 16px; padding: 11px 13px; border-radius: 12px; font-size: 13px; line-height: 1.5;
+    background: rgba(248, 113, 113, .12); border: 1px solid rgba(248, 113, 113, .32); color: #fca5a5;
+  }
+
+  details.iva { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(148, 163, 184, .16); }
+  details.iva summary {
+    cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700; color: #7dd3fc; user-select: none;
+  }
+  details.iva summary::-webkit-details-marker { display: none; }
+  details.iva summary::before { content: "▸"; font-size: 11px; transition: transform .15s; }
+  details.iva[open] summary::before { transform: rotate(90deg); }
+  .iva-body { margin-top: 14px; display: grid; gap: 9px; font-size: 13px; color: #cbd5e1; }
+  .iva-row { display: flex; justify-content: space-between; gap: 12px; }
+  .iva-row strong { font-variant-numeric: tabular-nums; color: #f1f5f9; }
+  .iva-note { margin: 8px 0 0; font-size: 12px; line-height: 1.55; color: #94a3b8; }
+
+  /* ---------- Catálogo ---------- */
+  .catalog-wrap { padding-bottom: 8px; }
+  .catalog h2 { margin: 0; font-size: 16px; letter-spacing: -0.01em; }
+  .catalog-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .catalog-count { font-size: 12.5px; color: var(--muted); }
+  .catalog-empty { color: var(--muted); font-size: 13.5px; padding: 18px 0 8px; margin: 0; text-align: center; }
+  .prod-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 2px; border-top: 1px dashed var(--line);
+  }
+  .prod-row:first-child { border-top: 0; }
+  .prod-main { flex: 1; min-width: 0; }
+  .prod-name { font-weight: 700; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prod-meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .prod-meta .stale { color: #d97706; font-weight: 600; }
+  html[data-theme="dark"] .prod-meta .stale { color: #fbbf24; }
+  .prod-actions { display: flex; gap: 6px; flex: none; }
+  .mini-btn {
+    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--muted);
+    background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+    padding: 7px 12px; cursor: pointer; transition: all .15s;
+  }
+  .mini-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .mini-btn.danger { padding: 7px 10px; }
+  .mini-btn.danger:hover { color: var(--danger); border-color: var(--danger-line); background: var(--danger-bg); }
+  @media (max-width: 520px) {
+    .prod-row { flex-wrap: wrap; }
+    .prod-actions { width: 100%; justify-content: flex-end; }
+  }
+
+  .foot { max-width: 1080px; margin: 0 auto; padding: 0 20px 48px; color: var(--muted); font-size: 12.5px; }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; z-index: 99;
+    transform: translateX(-50%) translateY(20px);
+    background: #0f172a; color: #fff; border: 1px solid #1e293b;
+    padding: 10px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .45); max-width: calc(100vw - 40px);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Hoja de impresión ---------- */
+  #printSheet { display: none; color: #111; max-width: 640px; }
+  #printSheet .ps-kicker { font-size: 12px; letter-spacing: .18em; color: #666; font-weight: 700; }
+  #printSheet h1 { font-size: 28px; margin: 6px 0 4px; color: #111; letter-spacing: -0.01em; }
+  #printSheet .ps-date { font-size: 13px; color: #666; }
+  #printSheet .ps-price-wrap { margin: 36px 0 12px; border-top: 2px solid #111; border-bottom: 1px solid #ddd; padding: 20px 0; }
+  #printSheet .ps-label { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: #666; }
+  #printSheet .ps-price { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #printSheet .ps-cuotas { font-size: 15px; color: #333; margin-top: 4px; }
+  #printSheet .ps-includes { font-size: 14px; color: #333; margin-top: 10px; }
+  #printSheet .ps-note { margin-top: 40px; font-size: 12px; color: #777; line-height: 1.6; }
+
+  @media print {
+    body { background: #fff !important; }
+    body > *:not(#printSheet) { display: none !important; }
+    #printSheet { display: block !important; }
+    @page { margin: 18mm; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <div class="head-text">
+    <h1>🧮 Calculadora de precios de venta</h1>
+    <p class="sub">Reventa en Argentina · Precios finales con IVA incluido · Pesos argentinos</p>
+  </div>
+  <div class="head-actions">
+    <button type="button" id="installBtn" class="pill-btn" hidden>⬇ Instalar app</button>
+    <button type="button" id="themeBtn" class="icon-btn" aria-label="Cambiar tema">🌙</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ============ FORMULARIO ============ -->
+  <section class="card">
+
+    <!-- 1 · Producto -->
+    <div class="sec">
+      <h2>1 · Producto</h2>
+      <div class="grid2">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label class="label" for="nombre">Nombre <small>(referencia, opcional)</small></label>
+          <input class="text-input" id="nombre" type="text" placeholder="Ej: Auriculares inalámbricos" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label class="label" for="costoProducto" id="costoLabel">Costo del producto <small>(IVA incluido)</small></label>
+          <div class="money">
+            <span class="prefix">$</span>
+            <input id="costoProducto" data-money inputmode="decimal" value="8000" autocomplete="off">
+            <div class="mini-seg" id="monedaSeg">
+              <button type="button" class="mini active" data-moneda="ARS">ARS</button>
+              <button type="button" class="mini" data-moneda="USD">USD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="cantidad">Cantidad de unidades</label>
+          <div class="money">
+            <input id="cantidad" inputmode="numeric" value="1" class="no-prefix" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label class="label" for="transferencia">Recargo por transferencia (%)</label>
+          <div class="money small" style="width: 120px;">
+            <input id="transferencia" data-money inputmode="decimal" value="10" class="no-prefix" autocomplete="off">
+            <span class="suffix">%</span>
+          </div>
+          <p class="hint">Se suma al costo de cada producto: es lo que te cobran al pagar por transferencia.</p>
+        </div>
+
+        <div class="field" id="bloqueCotizacion" hidden style="grid-column: 1 / -1;">
+          <label class="label" for="cotizacion">Cotización del dólar</label>
+          <div class="money">
+            <span class="prefix">$</span>
+            <input id="cotizacion" data-money inputmode="decimal" value="1500" autocomplete="off">
+          </div>
+          <p class="hint" id="cotizacionHint"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 · Envío -->
+    <div class="sec">
+      <h2>2 · Envío</h2>
+      <div class="segmented" id="envioSeg" role="group" aria-label="Modo del costo de envío">
+        <button type="button" class="seg-btn active" data-modo="pedido">Total del pedido</button>
+        <button type="button" class="seg-btn" data-modo="unidad">Por unidad</button>
+      </div>
+      <div class="field" style="margin-top: 14px;">
+        <label class="label" for="costoEnvio" id="envioLabel">Costo del envío <small>(total del pedido)</small></label>
+        <div class="money">
+          <span class="prefix">$</span>
+          <input id="costoEnvio" data-money inputmode="decimal" value="3000" autocomplete="off">
+        </div>
+        <p class="hint" id="envioHint"></p>
+      </div>
+    </div>
+
+    <!-- 3 · Packaging -->
+    <div class="sec">
+      <h2>3 · Packaging (por unidad)</h2>
+      <div class="grid2">
+        <div class="field">
+          <label class="label" for="bolsa">Bolsa</label>
+          <div class="money">
+            <span class="prefix">$</span>
+            <input id="bolsa" data-money inputmode="decimal" value="150" autocomplete="off">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" for="sticker">Sticker</label>
+          <div class="money">
+            <span class="prefix">$</span>
+            <input id="sticker" data-money inputmode="decimal" value="120" autocomplete="off">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 · Ganancia -->
+    <div class="sec">
+      <h2>4 · Ganancia</h2>
+      <div class="segmented" id="modoSeg" role="group" aria-label="Modo de cálculo">
+        <button type="button" class="seg-btn active" data-calc="precio" title="Calcular el precio de venta a partir del margen">Calcular precio</button>
+        <button type="button" class="seg-btn" data-calc="margen" title="Ver qué margen te queda a un precio de venta">Ver margen</button>
+      </div>
+
+      <div id="bloqueMargen" style="margin-top: 14px;">
+        <div class="field">
+          <label class="label" for="margen">Margen de ganancia deseado</label>
+          <div class="margin-row">
+            <input type="range" id="margenRange" min="0" max="90" step="1" value="40" aria-label="Margen de ganancia">
+            <div class="money small">
+              <input id="margen" data-money inputmode="decimal" value="40" autocomplete="off">
+              <span class="suffix">%</span>
+            </div>
+          </div>
+          <p class="hint" id="margenHint"></p>
+        </div>
+      </div>
+
+      <div id="bloquePrecioObjetivo" hidden style="margin-top: 14px;">
+        <div class="field">
+          <label class="label" for="precioObjetivo">Precio de venta que tenés en mente</label>
+          <div class="money">
+            <span class="prefix">$</span>
+            <input id="precioObjetivo" data-money inputmode="decimal" placeholder="Ej: 20.000" autocomplete="off">
+          </div>
+          <p class="hint">Te mostramos el margen y la ganancia que te queda a ese precio.</p>
+        </div>
+      </div>
+
+      <div class="field" id="bloqueReventa" style="margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--line);">
+        <label class="label" for="margenReventa">Margen para precio de reventa (%)</label>
+        <div class="margin-row">
+          <input type="range" id="margenReventaRange" min="0" max="90" step="1" value="25" aria-label="Margen de reventa">
+          <div class="money small">
+            <input id="margenReventa" data-money inputmode="decimal" value="25" autocomplete="off">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+        <p class="hint" id="reventaHint"></p>
+      </div>
+
+      <div class="field" id="bloqueRedondeo" style="margin-top: 16px;">
+        <label class="label" for="redondeo">Redondeo del precio final</label>
+        <select id="redondeo">
+          <option value="0">Sin redondeo</option>
+          <option value="100">A múltiplos de $100</option>
+          <option value="500" selected>A múltiplos de $500</option>
+          <option value="1000">A múltiplos de $1.000</option>
+          <option value="900">Terminación en $X.900</option>
+          <option value="990">Terminación en $X.990</option>
+        </select>
+        <label class="check"><input type="checkbox" id="redondearArriba"> Redondear siempre hacia arriba</label>
+      </div>
+    </div>
+
+    <!-- 5 · Canal y promos -->
+    <details class="sec-details" id="extraDetails">
+      <summary>5 · Canal de venta y promos <span class="badge" id="extraBadge" hidden></span></summary>
+      <div class="details-body">
+        <div class="grid2">
+          <div class="field">
+            <label class="label" for="canal">Canal de venta</label>
+            <select id="canal">
+              <option value="0">Venta directa / transferencia</option>
+              <option value="13">Mercado Libre (13%)</option>
+              <option value="3">Tienda propia (3%)</option>
+              <option value="custom">Otro / personalizado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="comision">Comisión del canal (%)</label>
+            <div class="money">
+              <input id="comision" data-money inputmode="decimal" value="0" class="no-prefix" autocomplete="off">
+              <span class="suffix">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid3" style="margin-top: 14px;">
+          <div class="field">
+            <label class="label" for="descuento">Descuento para promos (%)</label>
+            <div class="money">
+              <input id="descuento" data-money inputmode="decimal" class="no-prefix" placeholder="0" autocomplete="off">
+              <span class="suffix">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="cuotas">Cuotas (1 = sin cuotas)</label>
+            <div class="money">
+              <input id="cuotas" inputmode="numeric" value="1" class="no-prefix" autocomplete="off">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="recargo">Recargo por cuotas (%)</label>
+            <div class="money">
+              <input id="recargo" data-money inputmode="decimal" class="no-prefix" placeholder="0" autocomplete="off">
+              <span class="suffix">%</span>
+            </div>
+          </div>
+        </div>
+        <p class="hint">La comisión se descuenta de tu precio (Mercado Libre cobra ~13%). El descuento y las cuotas se muestran como escenarios en el panel de resultados.</p>
+      </div>
+    </details>
+
+    <div class="form-foot">
+      <span class="edit-note" id="editNote" hidden></span>
+      <div class="foot-actions">
+        <button type="button" id="limpiar" class="ghost">Limpiar todo</button>
+        <button type="button" id="guardar" class="btn-primary">💾 Guardar producto</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ RESULTADOS ============ -->
+  <aside class="results">
+    <div class="res-card">
+      <div class="res-name" id="resName" hidden></div>
+      <div class="res-updated" id="resUpdated" hidden></div>
+      <div class="res-label" id="heroLabel">Precio de venta final</div>
+      <div class="hero-price" id="hero">—</div>
+      <div class="sugerido" id="subline"></div>
+
+      <div class="res-actions">
+        <button type="button" class="res-btn save" id="btnGuardarRes">💾 Guardar</button>
+        <button type="button" class="res-btn" id="btnImagen">📷 Imagen</button>
+        <button type="button" class="res-btn" id="btnPdf">🖨️ PDF</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span>Costo total por unidad</span><strong id="costoUnit">—</strong></div>
+        <div class="stat"><span>Ganancia por unidad</span><strong id="ganUnit">—</strong></div>
+        <div class="stat"><span id="ganTotalLabel">Ganancia total</span><strong id="ganTotal">—</strong></div>
+      </div>
+
+      <div class="resale" id="resaleBox">
+        <div class="resale-top">
+          <span class="resale-label">Precio de reventa</span>
+          <span class="resale-margin" id="resaleMargin"></span>
+        </div>
+        <div class="resale-price" id="resalePrice">—</div>
+        <div class="resale-sub" id="resaleSub"></div>
+      </div>
+
+      <div class="scenarios" id="scenarios">
+        <div class="scenario" id="scDiscount" hidden></div>
+        <div class="scenario" id="scCuotas" hidden></div>
+      </div>
+
+      <div class="bar" aria-hidden="true">
+        <div class="seg" data-k="producto"></div>
+        <div class="seg" data-k="transferencia"></div>
+        <div class="seg" data-k="envio"></div>
+        <div class="seg" data-k="bolsa"></div>
+        <div class="seg" data-k="sticker"></div>
+        <div class="seg" data-k="comision"></div>
+        <div class="seg" data-k="ganancia"></div>
+      </div>
+
+      <ul class="legend">
+        <li class="leg" data-k="producto"><span class="dot"></span><span>Producto</span><span class="amt"></span><span class="pct"></span></li>
+        <li class="leg" data-k="transferencia"><span class="dot"></span><span id="legTransferenciaLabel">Transferencia</span><span class="amt"></span><span class="pct"></span></li>
+        <li class="leg" data-k="envio"><span class="dot"></span><span>Envío</span><span class="amt"></span><span class="pct"></span></li>
+        <li class="leg" data-k="bolsa"><span class="dot"></span><span>Bolsa</span><span class="amt"></span><span class="pct"></span></li>
+        <li class="leg" data-k="sticker"><span class="dot"></span><span>Sticker</span><span class="amt"></span><span class="pct"></span></li>
+        <li class="leg" data-k="comision"><span class="dot"></span><span id="legComisionLabel">Comisión</span><span class="amt"></span><span class="pct"></span></li>
+        <li class="leg" data-k="ganancia"><span class="dot"></span><span>Ganancia</span><span class="amt"></span><span class="pct"></span></li>
+      </ul>
+
+      <div class="warn" id="warn" hidden></div>
+
+      <details class="iva">
+        <summary>Desglose IVA (21%)</summary>
+        <div class="iva-body">
+          <div class="iva-row"><span>Precio final (con IVA)</span><strong id="ivaFinal">—</strong></div>
+          <div class="iva-row"><span>Neto sin IVA</span><strong id="ivaNeto">—</strong></div>
+          <div class="iva-row"><span>IVA (21%)</span><strong id="ivaIva">—</strong></div>
+          <p class="iva-note">Si sos monotributista, el IVA ya está incluido en tu precio y no tenés que separarlo. Si sos responsable inscripto, la última línea es la parte del precio que va a AFIP.</p>
+        </div>
+      </details>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ============ CATÁLOGO ============ -->
+<div class="wrap catalog-wrap">
+  <section class="card catalog">
+    <div class="catalog-head">
+      <h2>📦 Mis productos</h2>
+      <span class="catalog-count" id="catalogCount"></span>
+    </div>
+    <div id="catalogList"></div>
+  </section>
+</div>
+
+<p class="foot">Todo se calcula y se guarda en tu navegador; no se envía ningún dato a ningún lado.</p>
+
+<!-- ============ HOJA DE IMPRESIÓN ============ -->
+<div id="printSheet">
+  <div class="ps-head">
+    <div class="ps-kicker">PRESUPUESTO</div>
+    <h1 id="psName">—</h1>
+    <div class="ps-date" id="psDate"></div>
+  </div>
+  <div class="ps-price-wrap">
+    <div class="ps-label">Precio</div>
+    <div class="ps-price" id="psPrice">—</div>
+    <div class="ps-cuotas" id="psCuotas" hidden></div>
+  </div>
+  <div class="ps-includes" id="psEnvio" hidden>Incluye envío.</div>
+  <p class="ps-note">Precios en pesos argentinos, IVA incluido. Validez del presupuesto: 7 días.</p>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="calc.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var HF = window.HFCalc;
+
+  /* ---------- formato ---------- */
+  var fmtARS  = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  var fmtARS0 = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  var fmtARS2 = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var fmtNum  = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
+  var fmtInt  = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
+  var fmtPct  = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+
+  var LS_FORM = 'calcCostos.form';
+  var LS_PRODUCTS = 'calcCostos.products';
+  var LS_THEME = 'calcCostos.theme';
+
+  var state = { moneda: 'ARS', envioModo: 'pedido', modo: 'precio' };
+  var editId = null;
+  var products = [];
+  var last = null;
+  var lastData = null;
+  var saveTimer = null;
+  var toastTimer = null;
+  var deferredPrompt = null;
+
+  /* ---------- almacenamiento ---------- */
+  function loadJSON(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+  function storeJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  /* ---------- leer / aplicar formulario ---------- */
+  function collectForm() {
+    return {
+      nombre: $('nombre').value.trim(),
+      costo: HF.parseMoney($('costoProducto').value),
+      moneda: state.moneda,
+      cotizacion: HF.parseMoney($('cotizacion').value),
+      cantidad: Math.max(1, Math.round(HF.parseMoney($('cantidad').value)) || 1),
+      envio: HF.parseMoney($('costoEnvio').value),
+      envioModo: state.envioModo,
+      bolsa: HF.parseMoney($('bolsa').value),
+      sticker: HF.parseMoney($('sticker').value),
+      transferencia: HF.clamp(HF.parseMoney($('transferencia').value), 0, 100),
+      modo: state.modo,
+      margen: HF.clamp(HF.parseMoney($('margen').value), 0, 90),
+      margenReventa: HF.clamp(HF.parseMoney($('margenReventa').value), 0, 90),
+      precioObjetivo: HF.parseMoney($('precioObjetivo').value),
+      redondeo: parseInt($('redondeo').value, 10) || 0,
+      redondearArriba: $('redondearArriba').checked,
+      canal: $('canal').value,
+      comision: HF.clamp(HF.parseMoney($('comision').value), 0, 95),
+      descuento: HF.clamp(HF.parseMoney($('descuento').value), 0, 95),
+      cuotas: HF.clamp(Math.round(HF.parseMoney($('cuotas').value)) || 1, 1, 36),
+      recargo: HF.clamp(HF.parseMoney($('recargo').value), 0, 200)
+    };
+  }
+
+  function applyForm(d) {
+    if (!d) return;
+    $('nombre').value = d.nombre || '';
+    $('costoProducto').value = d.costo ? fmtNum.format(d.costo) : '';
+    state.moneda = d.moneda === 'USD' ? 'USD' : 'ARS';
+    $('cotizacion').value = d.cotizacion ? fmtNum.format(d.cotizacion) : '';
+    $('cantidad').value = String(d.cantidad || 1);
+    $('costoEnvio').value = d.envio ? fmtNum.format(d.envio) : '';
+    state.envioModo = d.envioModo === 'unidad' ? 'unidad' : 'pedido';
+    $('bolsa').value = d.bolsa ? fmtNum.format(d.bolsa) : '';
+    $('sticker').value = d.sticker ? fmtNum.format(d.sticker) : '';
+    $('transferencia').value = (d.transferencia == null) ? '10' : fmtNum.format(d.transferencia);
+    state.modo = d.modo === 'margen' ? 'margen' : 'precio';
+    $('margen').value = (d.margen == null) ? '40' : fmtNum.format(d.margen);
+    $('margenRange').value = HF.clamp(d.margen == null ? 40 : d.margen, 0, 90);
+    $('margenReventa').value = (d.margenReventa == null) ? '25' : fmtNum.format(d.margenReventa);
+    $('margenReventaRange').value = HF.clamp(d.margenReventa == null ? 25 : d.margenReventa, 0, 90);
+    $('precioObjetivo').value = d.precioObjetivo ? fmtNum.format(d.precioObjetivo) : '';
+    $('redondeo').value = String(d.redondeo || 0);
+    $('redondearArriba').checked = !!d.redondearArriba;
+    $('canal').value = d.canal || '0';
+    $('comision').value = (d.comision == null) ? '0' : fmtNum.format(d.comision);
+    $('descuento').value = d.descuento ? fmtNum.format(d.descuento) : '';
+    $('cuotas').value = String(d.cuotas || 1);
+    $('recargo').value = d.recargo ? fmtNum.format(d.recargo) : '';
+    syncMonedaUI();
+    syncCalcModoUI();
+    syncEnvioUI();
+  }
+
+  /* ---------- sincronizar UI ---------- */
+  function syncMonedaUI() {
+    var usd = state.moneda === 'USD';
+    document.querySelectorAll('#monedaSeg .mini').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.moneda === state.moneda);
+    });
+    $('bloqueCotizacion').hidden = !usd;
+    $('costoLabel').innerHTML = usd
+      ? 'Costo del producto <small>(USD, IVA incluido)</small>'
+      : 'Costo del producto <small>(IVA incluido)</small>';
+  }
+
+  function syncEnvioUI() {
+    document.querySelectorAll('#envioSeg .seg-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.modo === state.envioModo);
+    });
+    $('envioLabel').innerHTML = state.envioModo === 'pedido'
+      ? 'Costo del envío <small>(total del pedido)</small>'
+      : 'Costo del envío <small>(por unidad)</small>';
+  }
+
+  function syncCalcModoUI() {
+    var esMargen = state.modo === 'margen';
+    document.querySelectorAll('#modoSeg .seg-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.calc === state.modo);
+    });
+    $('bloqueMargen').hidden = esMargen;
+    $('bloquePrecioObjetivo').hidden = !esMargen;
+    $('bloqueRedondeo').hidden = esMargen;
+  }
+
+  /* ---------- fechas ---------- */
+  function daysSince(iso) {
+    var d = new Date(iso).getTime();
+    if (!isFinite(d)) return 9999;
+    return Math.max(0, Math.floor((Date.now() - d) / 86400000));
+  }
+  function humanDays(days) {
+    if (days <= 0) return 'hoy';
+    if (days === 1) return 'ayer';
+    if (days < 60) return 'hace ' + days + ' días';
+    return 'hace ' + Math.round(days / 30) + ' meses';
+  }
+
+  function findProd(id) {
+    for (var i = 0; i < products.length; i++) if (products[i].id === id) return products[i];
+    return null;
+  }
+
+  /* ---------- render ---------- */
+  function render(r, data) {
+    var final = r.precioFinal;
+    var esMargen = data.modo === 'margen';
+
+    if (!r.valido) {
+      $('heroLabel').textContent = 'Precio de venta final';
+      $('hero').textContent = '—';
+      $('hero').classList.remove('neg');
+      $('subline').textContent = '';
+    } else if (esMargen) {
+      $('heroLabel').textContent = 'Margen de ganancia';
+      $('hero').textContent = fmtPct.format(r.margenPct) + '%';
+      $('hero').classList.toggle('neg', r.margenPct < 0);
+      $('subline').textContent = 'Precio de venta: ' + fmtARS.format(final);
+    } else {
+      $('heroLabel').textContent = 'Precio de venta final';
+      $('hero').textContent = (data.redondeo > 0 ? fmtARS0 : fmtARS).format(final);
+      $('hero').classList.remove('neg');
+      var sub = '';
+      if (data.redondeo > 0) sub = 'Sin redondear: ' + fmtARS.format(r.sugerido);
+      if (final > 0) sub += (sub ? ' · ' : '') + 'margen ' + fmtPct.format(r.margenPct) + '%';
+      $('subline').textContent = sub;
+    }
+
+    $('resName').hidden = !data.nombre;
+    $('resName').textContent = data.nombre;
+
+    var prod = editId ? findProd(editId) : null;
+    var upd = $('resUpdated');
+    if (prod) {
+      var days = daysSince(prod.updatedAt);
+      upd.hidden = false;
+      upd.classList.toggle('stale', days > 30);
+      upd.textContent = 'Costos guardados ' + humanDays(days) + (days > 30 ? ' · conviene actualizarlos' : '');
+    } else {
+      upd.hidden = true;
+    }
+
+    $('costoUnit').textContent = fmtARS.format(r.costoUnit);
+    $('ganUnit').textContent = fmtARS.format(r.ganUnit);
+    $('ganTotal').textContent = fmtARS.format(r.ganTotal);
+    $('ganUnit').classList.toggle('neg', r.ganUnit < 0);
+    $('ganTotal').classList.toggle('neg', r.ganTotal < 0);
+    $('ganTotalLabel').textContent = 'Ganancia total (' + fmtInt.format(r.unidades) + (r.unidades === 1 ? ' unidad' : ' unidades') + ')';
+
+    /* precio de reventa */
+    var rv = r.reventa;
+    var rbox = $('resaleBox');
+    var rOk = rv && rv.valido && rv.precio > 0 && final > 0;
+    rbox.classList.toggle('invalid', final > 0 && !rOk);
+    if (rOk) {
+      $('resalePrice').textContent = (data.redondeo > 0 ? fmtARS0 : fmtARS).format(rv.precio);
+      $('resaleMargin').textContent = 'margen ' + fmtPct.format(rv.margenRealPct) + '%';
+      $('resaleSub').textContent = 'Ganancia ' + fmtARS.format(rv.ganUnit) + '/u' +
+        (r.unidades > 1
+          ? ' · ' + fmtARS.format(rv.ganTotal) + ' por ' + fmtInt.format(r.unidades) + ' unidades'
+          : '');
+    } else {
+      $('resalePrice').textContent = '—';
+      $('resaleMargin').textContent = '';
+      $('resaleSub').textContent = (final > 0 && rv && !rv.valido)
+        ? 'Margen de reventa + comisión suman 100% o más.'
+        : '';
+    }
+
+    var rh = $('reventaHint');
+    if (rOk) {
+      rh.textContent = 'Para revendedoras: ' + fmtARS.format(rv.precio) + ' · margen ' + fmtPct.format(rv.margenRealPct) + '%.';
+    } else if (r.costoUnit > 0) {
+      rh.textContent = 'Margen de reventa + comisión suman 100% o más: no hay precio posible.';
+    } else {
+      rh.textContent = 'Completá los costos para calcular el precio de reventa.';
+    }
+
+    /* escenarios */
+    var scD = $('scDiscount');
+    if (final > 0 && data.descuento > 0) {
+      scD.hidden = false;
+      scD.innerHTML = '';
+      var l1 = document.createElement('span');
+      l1.className = 'sc-left';
+      l1.textContent = 'Con ' + fmtNum.format(data.descuento) + '% off: ';
+      var s1 = document.createElement('strong');
+      s1.textContent = fmtARS.format(r.descuento.precio);
+      l1.appendChild(s1);
+      var m1 = document.createElement('span');
+      m1.className = 'sc-margin ' + (r.descuento.margenPct >= 0 ? 'pos' : 'neg');
+      m1.textContent = 'margen ' + fmtPct.format(r.descuento.margenPct) + '%';
+      scD.appendChild(l1);
+      scD.appendChild(m1);
+    } else {
+      scD.hidden = true;
+    }
+
+    var scC = $('scCuotas');
+    if (final > 0 && (data.cuotas > 1 || data.recargo > 0)) {
+      scC.hidden = false;
+      scC.innerHTML = '';
+      var l2 = document.createElement('span');
+      l2.className = 'sc-left';
+      l2.textContent = fmtInt.format(r.cuotas.n) + (r.cuotas.n === 1 ? ' cuota' : ' cuotas') + ' de ';
+      var s2 = document.createElement('strong');
+      s2.textContent = fmtARS.format(r.cuotas.valor);
+      l2.appendChild(s2);
+      if (r.cuotas.recargo > 0) {
+        var small = document.createElement('small');
+        small.textContent = ' (recargo ' + fmtNum.format(r.cuotas.recargo) + '%)';
+        l2.appendChild(small);
+      }
+      var m2 = document.createElement('span');
+      m2.className = 'sc-margin ' + (r.cuotas.margenPct >= 0 ? 'pos' : 'neg');
+      m2.textContent = 'margen ' + fmtPct.format(r.cuotas.margenPct) + '%';
+      scC.appendChild(l2);
+      scC.appendChild(m2);
+    } else {
+      scC.hidden = true;
+    }
+
+    /* desglose */
+    var totalBar = final > 0 ? final : 0;
+    var segs = {
+      producto: r.productoARS,
+      transferencia: r.transferenciaUnit,
+      envio: r.envioUnit,
+      bolsa: r.bolsa,
+      sticker: r.sticker,
+      comision: r.comisionUnit,
+      ganancia: Math.max(0, r.ganUnit)
+    };
+    Object.keys(segs).forEach(function (k) {
+      var v = segs[k];
+      var seg = document.querySelector('.seg[data-k="' + k + '"]');
+      seg.style.width = totalBar > 0 ? HF.clamp(v / totalBar * 100, 0, 100) + '%' : '0%';
+      var li = document.querySelector('.leg[data-k="' + k + '"]');
+      li.querySelector('.amt').textContent = fmtARS.format(k === 'ganancia' ? r.ganUnit : v);
+      var pctVal = totalBar > 0 ? v / totalBar * 100 : 0;
+      li.querySelector('.pct').textContent = totalBar > 0
+        ? (v > 0 && pctVal < 1 ? '<1%' : fmtInt.format(pctVal) + '%')
+        : '—';
+      li.classList.toggle('neg', k === 'ganancia' && r.ganUnit < 0);
+    });
+    $('legComisionLabel').textContent = r.comisionUnit > 0
+      ? 'Comisión (' + fmtNum.format(r.comisionPct) + '%)'
+      : 'Comisión';
+    $('legTransferenciaLabel').textContent = r.transferenciaUnit > 0
+      ? 'Transferencia (' + fmtNum.format(r.transferenciaPct) + '%)'
+      : 'Transferencia';
+    ['transferencia', 'envio', 'bolsa', 'sticker', 'comision'].forEach(function (k) {
+      document.querySelector('.leg[data-k="' + k + '"]').hidden = !(segs[k] > 0);
+    });
+
+    /* avisos */
+    var warn = $('warn');
+    if (!r.valido) {
+      warn.hidden = false;
+      warn.textContent = '⚠️ El margen más la comisión del canal suman 100% o más. Bajá alguno de los dos para que exista un precio posible.';
+    } else if (data.moneda === 'USD' && !(data.cotizacion > 0)) {
+      warn.hidden = false;
+      warn.textContent = '⚠️ Cargá la cotización del dólar para calcular el costo en pesos.';
+    } else if (r.ganUnit < 0) {
+      warn.hidden = false;
+      warn.textContent = '⚠️ A este precio perdés plata: la ganancia por unidad queda por debajo del costo.';
+    } else {
+      warn.hidden = true;
+    }
+
+    /* IVA */
+    $('ivaFinal').textContent = fmtARS.format(r.iva.final);
+    $('ivaNeto').textContent = fmtARS.format(r.iva.neto);
+    $('ivaIva').textContent = fmtARS.format(r.iva.iva);
+
+    /* pistas */
+    var hint = $('envioHint');
+    if (state.envioModo === 'pedido' && data.envio > 0) {
+      hint.hidden = false;
+      hint.textContent = '≈ ' + fmtARS.format(r.envioUnit) + ' por unidad';
+    } else {
+      hint.hidden = true;
+    }
+
+    var ch = $('cotizacionHint');
+    if (state.moneda === 'USD') {
+      ch.hidden = false;
+      ch.textContent = 'Costo en pesos: ' + fmtARS.format(r.productoARS) + ' por unidad';
+    } else {
+      ch.hidden = true;
+    }
+
+    var mh = $('margenHint');
+    if (esMargen) {
+      mh.hidden = true;
+    } else {
+      mh.hidden = false;
+      var denom = 1 - data.margen / 100 - data.comision / 100;
+      if (denom > 0) {
+        mh.textContent = 'Con ' + fmtNum.format(data.margen) + '% de margen' +
+          (data.comision > 0 ? ' y ' + fmtNum.format(data.comision) + '% de comisión' : '') +
+          ', tu precio es ' + fmtNum.format(1 / denom) + '× el costo.';
+      } else {
+        mh.textContent = 'Margen + comisión llegan al 100%: no hay precio posible.';
+      }
+    }
+
+    var parts = [];
+    if (data.comision > 0) parts.push(fmtNum.format(data.comision) + '% comisión');
+    if (data.descuento > 0) parts.push(fmtNum.format(data.descuento) + '% off');
+    if (data.cuotas > 1 || data.recargo > 0) parts.push(fmtInt.format(data.cuotas) + ' cuotas');
+    var badge = $('extraBadge');
+    badge.hidden = parts.length === 0;
+    badge.textContent = parts.join(' · ');
+
+    updateSaveUI();
+  }
+
+  function updateSaveUI() {
+    $('guardar').textContent = editId ? '💾 Actualizar producto' : '💾 Guardar producto';
+    $('btnGuardarRes').textContent = editId ? '💾 Actualizar' : '💾 Guardar';
+    var note = $('editNote');
+    note.hidden = !editId;
+    if (editId) {
+      var p = findProd(editId);
+      note.textContent = p ? 'Editando: ' + p.nombre : '';
+    }
+  }
+
+  /* ---------- cálculo ---------- */
+  function calc() {
+    var data = collectForm();
+    var r = HF.compute(data);
+    last = r;
+    lastData = data;
+    render(r, data);
+    scheduleSaveForm();
+  }
+
+  function scheduleSaveForm() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      storeJSON(LS_FORM, { form: collectForm(), editId: editId });
+    }, 400);
+  }
+
+  /* ---------- catálogo ---------- */
+  function persistProducts() {
+    storeJSON(LS_PRODUCTS, products);
+  }
+
+  function saveCurrent() {
+    var data = collectForm();
+    var r = HF.compute(data);
+    if (!r.valido) {
+      toast('Revisá el margen y la comisión antes de guardar');
+      return;
+    }
+    if (r.precioFinal <= 0) {
+      toast('Completá los datos antes de guardar');
+      return;
+    }
+    var existing = editId ? findProd(editId) : null;
+    var name = data.nombre || ('Producto ' + new Date().toLocaleDateString('es-AR'));
+    var item = {
+      id: existing ? existing.id : ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
+      nombre: name,
+      data: data,
+      precioFinal: r.precioFinal,
+      margenPct: r.margenPct,
+      precioReventa: r.reventa.valido ? r.reventa.precio : 0,
+      ganUnit: r.ganUnit,
+      updatedAt: new Date().toISOString()
+    };
+    if (existing) {
+      products[products.indexOf(existing)] = item;
+    } else {
+      products.unshift(item);
+    }
+    editId = item.id;
+    products.sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
+    persistProducts();
+    renderCatalog();
+    render(r, data);
+    toast(existing ? 'Producto actualizado ✓' : 'Producto guardado ✓');
+  }
+
+  function loadProd(id) {
+    var p = findProd(id);
+    if (!p) return;
+    editId = p.id;
+    applyForm(p.data);
+    calc();
+    toast('Cargado: ' + p.nombre);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteProd(id) {
+    var p = findProd(id);
+    if (!p) return;
+    if (!window.confirm('¿Borrar "' + p.nombre + '" de Mis productos?')) return;
+    products = products.filter(function (x) { return x.id !== id; });
+    if (editId === id) editId = null;
+    persistProducts();
+    renderCatalog();
+    calc();
+    toast('Producto borrado');
+  }
+
+  function renderCatalog() {
+    var list = $('catalogList');
+    list.innerHTML = '';
+    $('catalogCount').textContent = products.length
+      ? products.length + (products.length === 1 ? ' producto' : ' productos')
+      : '';
+
+    if (!products.length) {
+      var empty = document.createElement('p');
+      empty.className = 'catalog-empty';
+      empty.textContent = 'Todavía no guardaste productos. Completá la calculadora y tocá "Guardar producto".';
+      list.appendChild(empty);
+      return;
+    }
+
+    products.forEach(function (p) {
+      var row = document.createElement('div');
+      row.className = 'prod-row';
+
+      var main = document.createElement('div');
+      main.className = 'prod-main';
+
+      var name = document.createElement('div');
+      name.className = 'prod-name';
+      name.textContent = p.nombre;
+
+      var meta = document.createElement('div');
+      meta.className = 'prod-meta';
+      meta.appendChild(document.createTextNode(
+        fmtARS.format(p.precioFinal) +
+        (p.precioReventa ? ' · reventa ' + fmtARS.format(p.precioReventa) : '') +
+        ' · ganancia ' + fmtARS.format(p.ganUnit) + '/u · '
+      ));
+      var days = daysSince(p.updatedAt);
+      var when = document.createElement('span');
+      when.textContent = humanDays(days);
+      if (days > 30) when.className = 'stale';
+      meta.appendChild(when);
+
+      main.appendChild(name);
+      main.appendChild(meta);
+
+      var actions = document.createElement('div');
+      actions.className = 'prod-actions';
+
+      var bLoad = document.createElement('button');
+      bLoad.type = 'button';
+      bLoad.className = 'mini-btn';
+      bLoad.textContent = 'Cargar';
+      bLoad.dataset.act = 'load';
+      bLoad.dataset.id = p.id;
+
+      var bDel = document.createElement('button');
+      bDel.type = 'button';
+      bDel.className = 'mini-btn danger';
+      bDel.textContent = '🗑';
+      bDel.title = 'Borrar';
+      bDel.dataset.act = 'del';
+      bDel.dataset.id = p.id;
+
+      actions.appendChild(bLoad);
+      actions.appendChild(bDel);
+      row.appendChild(main);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+
+  /* ---------- exportar imagen ---------- */
+  function slug(s) {
+    return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'producto';
+  }
+  function ymd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function wrapText(ctx, text, maxWidth, maxLines) {
+    var words = String(text).split(/\s+/);
+    var lines = [];
+    var current = '';
+    words.forEach(function (word) {
+      var test = current ? current + ' ' + word : word;
+      if (ctx.measureText(test).width <= maxWidth) {
+        current = test;
+      } else {
+        if (current) lines.push(current);
+        current = word;
+      }
+    });
+    if (current) lines.push(current);
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      var lastLine = lines[maxLines - 1];
+      while (lastLine.length > 1 && ctx.measureText(lastLine + '…').width > maxWidth) {
+        lastLine = lastLine.slice(0, -1);
+      }
+      lines[maxLines - 1] = lastLine + '…';
+    }
+    return lines;
+  }
+
+  function quoteInfo() {
+    return {
+      name: (lastData && lastData.nombre) || '',
+      price: last.precioFinal,
+      envio: last.envioUnit > 0,
+      cuotas: (last.precioFinal > 0 && lastData.cuotas > 1) ? last.cuotas : null,
+      iva: last.iva.iva,
+      fecha: new Date()
+    };
+  }
+
+  function exportPng() {
+    if (!last || last.precioFinal <= 0) {
+      toast('Completá los datos para exportar');
+      return;
+    }
+    var info = quoteInfo();
+    var W = 1080, H = 1350;
+    var c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    var ctx = c.getContext('2d');
+    if (!ctx) { toast('No se pudo generar la imagen'); return; }
+
+    var g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#0a1120');
+    g.addColorStop(1, '#142643');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    var glow = ctx.createRadialGradient(880, 160, 40, 880, 160, 620);
+    glow.addColorStop(0, 'rgba(56, 189, 248, .22)');
+    glow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, 700);
+
+    var accent = ctx.createLinearGradient(0, 0, W, 0);
+    accent.addColorStop(0, '#38bdf8');
+    accent.addColorStop(1, '#34d399');
+    ctx.fillStyle = accent;
+    ctx.fillRect(0, 0, W, 10);
+
+    function setFont(weight, size) {
+      ctx.font = weight + ' ' + size + 'px "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif';
+    }
+
+    ctx.fillStyle = '#7dd3fc';
+    setFont(700, 30);
+    try { ctx.letterSpacing = '4px'; } catch (e) {}
+    ctx.fillText('PRECIO DE VENTA', 80, 130);
+    try { ctx.letterSpacing = '0px'; } catch (e) {}
+
+    ctx.fillStyle = '#ffffff';
+    setFont(800, 60);
+    var nameLines = info.name ? wrapText(ctx, info.name, 920, 2) : [];
+    var y = 230;
+    nameLines.forEach(function (line) {
+      ctx.fillText(line, 80, y);
+      y += 76;
+    });
+
+    var priceText = fmtARS0.format(info.price);
+    var size = 150;
+    setFont(800, size);
+    while (ctx.measureText(priceText).width > 920 && size > 70) {
+      size -= 6;
+      setFont(800, size);
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(priceText, 80, 560);
+
+    setFont(500, 34);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('IVA incluido · Pesos argentinos', 84, 625);
+
+    ctx.strokeStyle = 'rgba(148, 163, 184, .3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(80, 710);
+    ctx.lineTo(W - 80, 710);
+    ctx.stroke();
+
+    var rows = [];
+    if (info.envio) rows.push(['Incluye envío', 'Incluido']);
+    if (info.cuotas) {
+      rows.push([
+        info.cuotas.n + ' cuotas' + (info.cuotas.recargo > 0 ? ' (recargo ' + fmtNum.format(info.cuotas.recargo) + '%)' : ''),
+        fmtARS.format(info.cuotas.valor) + ' c/u'
+      ]);
+    }
+    rows.push(['IVA contenido (21%)', fmtARS2.format(info.iva)]);
+
+    var ry = 790;
+    rows.forEach(function (row) {
+      setFont(500, 34);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(row[0], 80, ry);
+      setFont(700, 36);
+      ctx.fillStyle = '#e2e8f0';
+      var w = ctx.measureText(row[1]).width;
+      ctx.fillText(row[1], W - 80 - w, ry);
+      ry += 74;
+    });
+
+    setFont(500, 27);
+    ctx.fillStyle = '#64748b';
+    var fecha = info.fecha.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+    ctx.fillText(fecha, 80, H - 70);
+    var f2 = 'Calculadora de precios';
+    ctx.fillText(f2, W - 80 - ctx.measureText(f2).width, H - 70);
+
+    c.toBlob(function (blob) {
+      if (!blob) { toast('No se pudo generar la imagen'); return; }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'precio-' + slug(info.name) + '-' + ymd(new Date()) + '.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+      toast('Imagen descargada ✓');
+    }, 'image/png');
+  }
+
+  /* ---------- imprimir / PDF ---------- */
+  function printQuote() {
+    if (!last || last.precioFinal <= 0) {
+      toast('Completá los datos para exportar');
+      return;
+    }
+    var info = quoteInfo();
+    $('psName').textContent = info.name;
+    $('psName').hidden = !info.name;
+    $('psDate').textContent = info.fecha.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+    $('psPrice').textContent = fmtARS.format(info.price);
+    var pl = $('psCuotas');
+    if (info.cuotas && info.cuotas.n > 1) {
+      pl.hidden = false;
+      pl.textContent = 'o en ' + info.cuotas.n + ' cuotas de ' + fmtARS.format(info.cuotas.valor) +
+        (info.cuotas.recargo > 0 ? ' (recargo ' + fmtNum.format(info.cuotas.recargo) + '%)' : ' sin interés');
+    } else {
+      pl.hidden = true;
+    }
+    $('psEnvio').hidden = !info.envio;
+    window.print();
+  }
+
+  /* ---------- toast ---------- */
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------- tema ---------- */
+  function syncThemeBtn() {
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    $('themeBtn').textContent = dark ? '☀️' : '🌙';
+    $('themeBtn').title = dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro';
+  }
+
+  function toggleTheme() {
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var next = dark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem(LS_THEME, next); } catch (e) {}
+    syncThemeBtn();
+  }
+
+  /* ---------- PWA ---------- */
+  function setupInstall() {
+    var btn = $('installBtn');
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      btn.hidden = false;
+    });
+    btn.addEventListener('click', function () {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt = null;
+      btn.hidden = true;
+    });
+    window.addEventListener('appinstalled', function () { btn.hidden = true; });
+  }
+
+  function registerSW() {
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  }
+
+  /* ---------- eventos ---------- */
+  function bind() {
+    /* formateo al salir de campos de dinero */
+    document.querySelectorAll('input[data-money]').forEach(function (inp) {
+      inp.addEventListener('blur', function () {
+        var raw = inp.value.trim();
+        inp.value = raw === '' ? '' : fmtNum.format(HF.parseMoney(raw));
+        calc();
+      });
+    });
+
+    $('cantidad').addEventListener('blur', function () {
+      var raw = $('cantidad').value.trim();
+      $('cantidad').value = raw === '' ? '1' : fmtInt.format(Math.max(1, Math.round(HF.parseMoney(raw))));
+      calc();
+    });
+
+    $('cuotas').addEventListener('blur', function () {
+      var raw = $('cuotas').value.trim();
+      $('cuotas').value = String(HF.clamp(Math.round(HF.parseMoney(raw)) || 1, 1, 36));
+      calc();
+    });
+
+    /* moneda */
+    $('monedaSeg').addEventListener('click', function (e) {
+      var btn = e.target.closest('.mini[data-moneda]');
+      if (!btn || btn.dataset.moneda === state.moneda) return;
+      var cot = HF.parseMoney($('cotizacion').value);
+      var val = HF.parseMoney($('costoProducto').value);
+      if (cot > 0 && val > 0) {
+        if (state.moneda === 'ARS' && btn.dataset.moneda === 'USD') {
+          val = val / cot;
+        } else if (state.moneda === 'USD' && btn.dataset.moneda === 'ARS') {
+          val = val * cot;
+        }
+        $('costoProducto').value = fmtNum.format(val);
+      }
+      state.moneda = btn.dataset.moneda;
+      syncMonedaUI();
+      calc();
+    });
+
+    /* modo de envío */
+    $('envioSeg').addEventListener('click', function (e) {
+      var btn = e.target.closest('.seg-btn[data-modo]');
+      if (!btn) return;
+      state.envioModo = btn.dataset.modo;
+      syncEnvioUI();
+      calc();
+    });
+
+    /* modo de cálculo */
+    $('modoSeg').addEventListener('click', function (e) {
+      var btn = e.target.closest('.seg-btn[data-calc]');
+      if (!btn) return;
+      state.modo = btn.dataset.calc;
+      syncCalcModoUI();
+      if (state.modo === 'margen' && !$('precioObjetivo').value && last && last.precioFinal > 0) {
+        $('precioObjetivo').value = fmtNum.format(last.precioFinal);
+      }
+      calc();
+    });
+
+    /* margen slider + campo */
+    $('margenRange').addEventListener('input', function () {
+      $('margen').value = $('margenRange').value;
+      calc();
+    });
+    $('margen').addEventListener('input', function () {
+      $('margenRange').value = HF.clamp(HF.parseMoney($('margen').value), 0, 90);
+      calc();
+    });
+    $('margen').addEventListener('blur', function () {
+      var raw = $('margen').value.trim();
+      $('margen').value = raw === '' ? '0' : fmtNum.format(HF.clamp(HF.parseMoney(raw), 0, 90));
+      calc();
+    });
+
+    /* margen de reventa */
+    $('margenReventaRange').addEventListener('input', function () {
+      $('margenReventa').value = $('margenReventaRange').value;
+      calc();
+    });
+    $('margenReventa').addEventListener('input', function () {
+      $('margenReventaRange').value = HF.clamp(HF.parseMoney($('margenReventa').value), 0, 90);
+      calc();
+    });
+    $('margenReventa').addEventListener('blur', function () {
+      var raw = $('margenReventa').value.trim();
+      $('margenReventa').value = raw === '' ? '25' : fmtNum.format(HF.clamp(HF.parseMoney(raw), 0, 90));
+      calc();
+    });
+
+    /* canal de venta */
+    $('canal').addEventListener('change', function () {
+      var v = $('canal').value;
+      if (v !== 'custom') $('comision').value = v;
+      calc();
+    });
+    $('comision').addEventListener('input', function () {
+      var sel = $('canal');
+      if (sel.value !== 'custom' && HF.parseMoney($('comision').value) !== HF.parseMoney(sel.value)) {
+        sel.value = 'custom';
+      }
+      calc();
+    });
+    $('comision').addEventListener('blur', function () {
+      var n = HF.parseMoney($('comision').value);
+      var match = null;
+      ['0', '3', '13'].forEach(function (v) {
+        if (Math.abs(Number(v) - n) < 1e-9) match = v;
+      });
+      $('canal').value = match != null ? match : 'custom';
+      calc();
+    });
+
+    /* botones */
+    $('guardar').addEventListener('click', saveCurrent);
+    $('btnGuardarRes').addEventListener('click', saveCurrent);
+    $('btnImagen').addEventListener('click', exportPng);
+    $('btnPdf').addEventListener('click', printQuote);
+    $('themeBtn').addEventListener('click', toggleTheme);
+
+    $('limpiar').addEventListener('click', function () {
+      if (!window.confirm('¿Vaciar los campos? Los productos guardados no se borran.')) return;
+      editId = null;
+      ['nombre', 'costoProducto', 'costoEnvio', 'bolsa', 'sticker', 'precioObjetivo', 'descuento', 'recargo'].forEach(function (id) {
+        $(id).value = '';
+      });
+      $('cotizacion').value = fmtNum.format(1500);
+      $('cantidad').value = '1';
+      $('transferencia').value = '10';
+      $('margen').value = '40';
+      $('margenRange').value = '40';
+      $('margenReventa').value = '25';
+      $('margenReventaRange').value = '25';
+      $('cuotas').value = '1';
+      $('redondeo').value = '500';
+      $('redondearArriba').checked = false;
+      $('canal').value = '0';
+      $('comision').value = '0';
+      state.moneda = 'ARS';
+      state.modo = 'precio';
+      state.envioModo = 'pedido';
+      syncMonedaUI();
+      syncCalcModoUI();
+      syncEnvioUI();
+      calc();
+    });
+
+    $('catalogList').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      if (btn.dataset.act === 'load') loadProd(btn.dataset.id);
+      if (btn.dataset.act === 'del') deleteProd(btn.dataset.id);
+    });
+
+    /* recalcular con cualquier cambio */
+    document.querySelectorAll('input, select').forEach(function (el) {
+      el.addEventListener('input', calc);
+      el.addEventListener('change', calc);
+    });
+
+    /* seleccionar al enfocar */
+    document.querySelectorAll('input[inputmode]').forEach(function (inp) {
+      inp.addEventListener('focus', function () { inp.select(); });
+    });
+  }
+
+  /* ---------- inicio ---------- */
+  function formatInitialInputs() {
+    document.querySelectorAll('input[data-money]').forEach(function (inp) {
+      var raw = inp.value.trim();
+      if (raw !== '') inp.value = fmtNum.format(HF.parseMoney(raw));
+    });
+  }
+
+  function init() {
+    products = loadJSON(LS_PRODUCTS, []);
+    if (!Array.isArray(products)) products = [];
+    products.sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
+
+    var saved = loadJSON(LS_FORM, null);
+    if (saved && saved.form) {
+      applyForm(saved.form);
+      editId = saved.editId || null;
+    } else {
+      syncMonedaUI();
+      syncCalcModoUI();
+      syncEnvioUI();
+    }
+
+    syncThemeBtn();
+    formatInitialInputs();
+    renderCatalog();
+    bind();
+    calc();
+    setupInstall();
+    registerSW();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
