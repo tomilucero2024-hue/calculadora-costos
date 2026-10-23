@@ -15,22 +15,20 @@ Los datos (productos guardados y último formulario) quedan en el navegador (`lo
 - **Costo del producto** en pesos o en dólares (con cotización configurable).
 - **Recargo por transferencia (%)**: se suma al costo de cada producto. Por defecto 10%.
 - **Envío**: costo total del pedido repartido entre las unidades, o costo por unidad.
-- **Packaging**: bolsa y sticker por unidad.
 - **Cantidad de unidades** del pedido.
+- **Extras opcionales** (con un check): packaging (bolsa y sticker), comisión del canal, promos, cuotas y redondeo. Sin el check, no se suman al precio.
 
 ### Precios
-- **Precio de venta final** con margen sobre el precio final: `costo ÷ (1 − margen)`.
-- **Precio de reventa** para otras revendedoras, con su propio margen.
-- **Comisión del canal**: venta directa 0%, Mercado Libre 13%, tienda propia 3% u otro %.
-- **Descuento para promos**: muestra el precio con descuento y el margen que queda.
-- **Cuotas** con recargo total: muestra el valor de cada cuota y el margen.
-- **Redondeo**: sin redondeo, múltiplos de $100 / $500 / $1.000, o terminaciones $X.900 / $X.990, con opción de redondear siempre hacia arriba.
+- **Base**: producto + 10% de transferencia + envío.
+- **Precio de venta final**: `base × (1 + margen)`.
+- **Precio de reventa**: la misma base, con su propio margen: `base × (1 + margen de reventa)`.
 - **Modo inverso "Ver margen"**: ingresás el precio que tenés en mente y te dice qué margen y ganancia te deja.
+- **Extras**: si activás el check, se agregan packaging, comisión, descuentos, cuotas y redondeo.
 
 ### Resultados
 - Precio final, costo unitario, ganancia por unidad y total del pedido.
 - Barra de desglose: producto, transferencia, envío, bolsa, sticker, comisión y ganancia.
-- Avisos si el precio queda por debajo del costo, si el margen + comisión superan el 100%, o si los costos guardados tienen más de 30 días.
+- Avisos si el precio queda por debajo del costo, si falta la cotización del dólar, o si los costos guardados tienen más de 30 días.
 
 ### Guardado y exportación
 - **Mis productos**: guardá, recuperá y borrá productos. Cada uno muestra precio, precio de reventa, ganancia y fecha de actualización. Los costos con más de 30 días se marcan en ámbar.

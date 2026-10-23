@@ -532,10 +532,12 @@
       </div>
     </div>
 
-    <!-- 3 · Packaging -->
+    <!-- 3 · Extras opcionales -->
     <div class="sec">
-      <h2>3 · Packaging (por unidad)</h2>
-      <div class="grid2">
+      <h2>3 · Extras (opcional)</h2>
+      <label class="check"><input type="checkbox" id="incluirExtras"> Incluir packaging, comisión, promos y redondeo</label>
+      <p class="hint" id="extrasHint">Desactivado: el precio se calcula solo con producto + 10% + envío.</p>
+      <div class="grid2" id="extrasPackaging" hidden style="margin-top: 14px;">
         <div class="field">
           <label class="label" for="bolsa">Bolsa</label>
           <div class="money">
@@ -811,6 +813,7 @@
       cantidad: Math.max(1, Math.round(HF.parseMoney($('cantidad').value)) || 1),
       envio: HF.parseMoney($('costoEnvio').value),
       envioModo: state.envioModo,
+      incluirExtras: $('incluirExtras').checked,
       bolsa: HF.parseMoney($('bolsa').value),
       sticker: HF.parseMoney($('sticker').value),
       transferencia: HF.clamp(HF.parseMoney($('transferencia').value), 0, 100),
@@ -837,6 +840,7 @@
     $('cantidad').value = String(d.cantidad || 1);
     $('costoEnvio').value = d.envio ? fmtNum.format(d.envio) : '';
     state.envioModo = d.envioModo === 'unidad' ? 'unidad' : 'pedido';
+    $('incluirExtras').checked = !!d.incluirExtras;
     $('bolsa').value = d.bolsa ? fmtNum.format(d.bolsa) : '';
     $('sticker').value = d.sticker ? fmtNum.format(d.sticker) : '';
     $('transferencia').value = (d.transferencia == null) ? '10' : fmtNum.format(d.transferencia);
@@ -856,6 +860,7 @@
     syncMonedaUI();
     syncCalcModoUI();
     syncEnvioUI();
+    syncExtrasUI();
   }
 
   /* ---------- sincronizar UI ---------- */
@@ -886,7 +891,17 @@
     });
     $('bloqueMargen').hidden = esMargen;
     $('bloquePrecioObjetivo').hidden = !esMargen;
-    $('bloqueRedondeo').hidden = esMargen;
+    $('bloqueRedondeo').hidden = esMargen || !$('incluirExtras').checked;
+  }
+
+  function syncExtrasUI() {
+    var on = $('incluirExtras').checked;
+    $('extrasPackaging').hidden = !on;
+    $('extraDetails').hidden = !on;
+    $('bloqueRedondeo').hidden = state.modo === 'margen' || !on;
+    $('extrasHint').textContent = on
+      ? 'Se suman packaging, comisión, promos y redondeo al precio.'
+      : 'Desactivado: el precio se calcula solo con producto + 10% + envío.';
   }
 
   /* ---------- fechas ---------- */
@@ -911,6 +926,7 @@
   function render(r, data) {
     var final = r.precioFinal;
     var esMargen = data.modo === 'margen';
+    var extrasOn = !!r.incluirExtras;
 
     if (!r.valido) {
       $('heroLabel').textContent = 'Precio de venta final';
@@ -924,10 +940,10 @@
       $('subline').textContent = 'Precio de venta: ' + fmtARS.format(final);
     } else {
       $('heroLabel').textContent = 'Precio de venta final';
-      $('hero').textContent = (data.redondeo > 0 ? fmtARS0 : fmtARS).format(final);
+      $('hero').textContent = (extrasOn && data.redondeo > 0 ? fmtARS0 : fmtARS).format(final);
       $('hero').classList.remove('neg');
       var sub = '';
-      if (data.redondeo > 0) sub = 'Sin redondear: ' + fmtARS.format(r.sugerido);
+      if (extrasOn && data.redondeo > 0) sub = 'Sin redondear: ' + fmtARS.format(r.sugerido);
       if (final > 0) sub += (sub ? ' · ' : '') + 'margen ' + fmtPct.format(r.margenPct) + '%';
       $('subline').textContent = sub;
     }
@@ -959,7 +975,7 @@
     var rOk = rv && rv.valido && rv.precio > 0 && final > 0;
     rbox.classList.toggle('invalid', final > 0 && !rOk);
     if (rOk) {
-      $('resalePrice').textContent = (data.redondeo > 0 ? fmtARS0 : fmtARS).format(rv.precio);
+      $('resalePrice').textContent = (extrasOn && data.redondeo > 0 ? fmtARS0 : fmtARS).format(rv.precio);
       $('resaleMargin').textContent = 'margen ' + fmtPct.format(rv.margenRealPct) + '%';
       $('resaleSub').textContent = 'Ganancia ' + fmtARS.format(rv.ganUnit) + '/u' +
         (r.unidades > 1
@@ -968,16 +984,12 @@
     } else {
       $('resalePrice').textContent = '—';
       $('resaleMargin').textContent = '';
-      $('resaleSub').textContent = (final > 0 && rv && !rv.valido)
-        ? 'Margen de reventa + comisión suman 100% o más.'
-        : '';
+      $('resaleSub').textContent = '';
     }
 
     var rh = $('reventaHint');
     if (rOk) {
       rh.textContent = 'Para revendedoras: ' + fmtARS.format(rv.precio) + ' · margen ' + fmtPct.format(rv.margenRealPct) + '%.';
-    } else if (r.costoUnit > 0) {
-      rh.textContent = 'Margen de reventa + comisión suman 100% o más: no hay precio posible.';
     } else {
       rh.textContent = 'Completá los costos para calcular el precio de reventa.';
     }
@@ -1061,10 +1073,7 @@
 
     /* avisos */
     var warn = $('warn');
-    if (!r.valido) {
-      warn.hidden = false;
-      warn.textContent = '⚠️ El margen más la comisión del canal suman 100% o más. Bajá alguno de los dos para que exista un precio posible.';
-    } else if (data.moneda === 'USD' && !(data.cotizacion > 0)) {
+    if (data.moneda === 'USD' && !(data.cotizacion > 0)) {
       warn.hidden = false;
       warn.textContent = '⚠️ Cargá la cotización del dólar para calcular el costo en pesos.';
     } else if (r.ganUnit < 0) {
@@ -1096,20 +1105,19 @@
       mh.hidden = true;
     } else {
       mh.hidden = false;
-      var denom = 1 - data.margen / 100 - data.comision / 100;
-      if (denom > 0) {
-        mh.textContent = 'Con ' + fmtNum.format(data.margen) + '% de margen' +
-          (data.comision > 0 ? ' y ' + fmtNum.format(data.comision) + '% de comisión' : '') +
-          ', tu precio es ' + fmtNum.format(1 / denom) + '× el costo.';
-      } else {
-        mh.textContent = 'Margen + comisión llegan al 100%: no hay precio posible.';
-      }
+      var factor = 1 + data.margen / 100;
+      if (extrasOn && data.comision > 0) factor = factor / (1 - data.comision / 100);
+      mh.textContent = 'Con ' + fmtNum.format(data.margen) + '% de margen' +
+        (extrasOn && data.comision > 0 ? ' y ' + fmtNum.format(data.comision) + '% de comisión' : '') +
+        ', tu precio es ' + fmtNum.format(factor) + '× el costo.';
     }
 
     var parts = [];
-    if (data.comision > 0) parts.push(fmtNum.format(data.comision) + '% comisión');
-    if (data.descuento > 0) parts.push(fmtNum.format(data.descuento) + '% off');
-    if (data.cuotas > 1 || data.recargo > 0) parts.push(fmtInt.format(data.cuotas) + ' cuotas');
+    if (extrasOn) {
+      if (data.comision > 0) parts.push(fmtNum.format(data.comision) + '% comisión');
+      if (data.descuento > 0) parts.push(fmtNum.format(data.descuento) + '% off');
+      if (data.cuotas > 1 || data.recargo > 0) parts.push(fmtInt.format(data.cuotas) + ' cuotas');
+    }
     var badge = $('extraBadge');
     badge.hidden = parts.length === 0;
     badge.textContent = parts.join(' · ');
@@ -1171,6 +1179,7 @@
       margenPct: r.margenPct,
       precioReventa: r.reventa.valido ? r.reventa.precio : 0,
       ganUnit: r.ganUnit,
+      calcVersion: 3,
       updatedAt: new Date().toISOString()
     };
     if (existing) {
@@ -1315,7 +1324,7 @@
       name: (lastData && lastData.nombre) || '',
       price: last.precioFinal,
       envio: last.envioUnit > 0,
-      cuotas: (last.precioFinal > 0 && lastData.cuotas > 1) ? last.cuotas : null,
+      cuotas: (last.incluirExtras && last.precioFinal > 0 && lastData.cuotas > 1) ? last.cuotas : null,
       fecha: new Date()
     };
   }
@@ -1626,6 +1635,7 @@
     $('btnImagen').addEventListener('click', exportPng);
     $('btnPdf').addEventListener('click', printQuote);
     $('themeBtn').addEventListener('click', toggleTheme);
+    $('incluirExtras').addEventListener('change', syncExtrasUI);
 
     $('limpiar').addEventListener('click', function () {
       if (!window.confirm('¿Vaciar los campos? Los productos guardados no se borran.')) return;
@@ -1635,6 +1645,7 @@
       });
       $('cotizacion').value = fmtNum.format(1500);
       $('cantidad').value = '1';
+      $('incluirExtras').checked = false;
       $('transferencia').value = '10';
       $('margen').value = '40';
       $('margenRange').value = '40';
@@ -1651,6 +1662,7 @@
       syncMonedaUI();
       syncCalcModoUI();
       syncEnvioUI();
+      syncExtrasUI();
       calc();
     });
 
@@ -1681,28 +1693,27 @@
     });
   }
 
-  /* Los productos guardados por la versión anterior tenían importes netos.
-     Se recalculan con el modelo actual y se limpian los campos viejos. */
+  /* Recalcula los productos guardados con la fórmula actual y limpia
+     los campos viejos (versión neta, importes anteriores, etc.). */
   function migrateProducts() {
     var changed = false;
     products.forEach(function (p) {
-      if (!p || p.version !== 2) return;
-      if (p.data) {
+      if (!p) return;
+      if (p.data && p.calcVersion !== 3) {
         var r = HF.compute(p.data);
         p.precioFinal = r.precioFinal;
         p.margenPct = r.margenPct;
         p.precioReventa = r.reventa.valido ? r.reventa.precio : 0;
         p.ganUnit = r.ganUnit;
-      } else {
-        p.precioFinal = p.precioConIva || p.precioFinal || 0;
-        p.precioReventa = p.precioReventaConIva || p.precioReventa || 0;
-        p.margenPct = p.margenPct || 0;
-        p.ganUnit = p.ganUnit || 0;
+        p.calcVersion = 3;
+        changed = true;
       }
-      delete p.version;
-      delete p.precioConIva;
-      delete p.precioReventaConIva;
-      changed = true;
+      if (p.version !== undefined || p.precioConIva !== undefined || p.precioReventaConIva !== undefined) {
+        delete p.version;
+        delete p.precioConIva;
+        delete p.precioReventaConIva;
+        changed = true;
+      }
     });
     if (changed) persistProducts();
     try { localStorage.removeItem('calcCostos.iva'); } catch (e) {}
@@ -1722,6 +1733,7 @@
       syncMonedaUI();
       syncCalcModoUI();
       syncEnvioUI();
+      syncExtrasUI();
     }
 
     syncThemeBtn();

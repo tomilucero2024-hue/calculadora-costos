@@ -69,24 +69,38 @@
     var envioModo = i.envioModo === 'unidad' ? 'unidad' : 'pedido';
     var envioUnit = envioModo === 'unidad' ? envio : envio / unidades;
 
-    var bolsa = Math.max(0, num(i.bolsa, 0));
-    var sticker = Math.max(0, num(i.sticker, 0));
     var transferenciaPct = clamp(num(i.transferencia, 0), 0, 100);
     var transferenciaUnit = productoARS * transferenciaPct / 100;
-    var costoUnit = productoARS + transferenciaUnit + envioUnit + bolsa + sticker;
 
-    var comisionPct = clamp(num(i.comision, 0), 0, 95);
+    /* Base pedida: producto + 10% de transferencia + envío.
+       Lo demás queda detrás del check "incluir extras". */
+    var incluirExtras = !!i.incluirExtras;
+
+    var bolsa = incluirExtras ? Math.max(0, num(i.bolsa, 0)) : 0;
+    var sticker = incluirExtras ? Math.max(0, num(i.sticker, 0)) : 0;
+    var costoBase = productoARS + transferenciaUnit + envioUnit;
+    var costoUnit = costoBase + bolsa + sticker;
+
+    var comisionPct = incluirExtras ? clamp(num(i.comision, 0), 0, 95) : 0;
     var comision = comisionPct / 100;
 
     var modo = i.modo === 'margen' ? 'margen' : 'precio';
     var margenInput = clamp(num(i.margen, 0), 0, 95);
     var margenReventaPct = clamp(num(i.margenReventa, 0), 0, 95);
-    var redondeo = num(i.redondeo, 0);
-    var redondearArriba = !!i.redondearArriba;
+    var redondeo = incluirExtras ? num(i.redondeo, 0) : 0;
+    var redondearArriba = incluirExtras && !!i.redondearArriba;
 
-    var descuentoPct = clamp(num(i.descuento, 0), 0, 95);
-    var cuotasN = clamp(Math.round(num(i.cuotas, 1)) || 1, 1, 36);
-    var recargoPct = clamp(num(i.recargo, 0), 0, 200);
+    var descuentoPct = incluirExtras ? clamp(num(i.descuento, 0), 0, 95) : 0;
+    var cuotasN = incluirExtras ? clamp(Math.round(num(i.cuotas, 1)) || 1, 1, 36) : 1;
+    var recargoPct = incluirExtras ? clamp(num(i.recargo, 0), 0, 200) : 0;
+
+    /* El margen se suma al costo. Si hay comisión, se cubre después
+       para que el margen quede sobre el costo. */
+    function precioConMargen(margenPct) {
+      var precio = costoUnit * (1 + margenPct / 100);
+      if (comision > 0) precio = precio / (1 - comision);
+      return precio;
+    }
 
     var valido = true;
     var motivo = '';
@@ -97,29 +111,22 @@
     if (modo === 'margen') {
       precioFinal = Math.max(0, num(i.precioObjetivo, 0));
       sugerido = precioFinal;
-      margenPct = precioFinal > 0 ? (1 - comision - costoUnit / precioFinal) * 100 : 0;
     } else {
-      var denom = 1 - margenInput / 100 - comision;
-      if (denom <= 0.0001) {
-        valido = false;
-        motivo = 'margen+comision';
-      } else {
-        sugerido = costoUnit / denom;
-        precioFinal = roundPrice(sugerido, redondeo, redondearArriba);
-        margenPct = precioFinal > 0 ? (1 - comision - costoUnit / precioFinal) * 100 : 0;
-      }
+      sugerido = precioConMargen(margenInput);
+      precioFinal = roundPrice(sugerido, redondeo, redondearArriba);
     }
 
     var comisionUnit = precioFinal * comision;
     var ganUnit = precioFinal - comisionUnit - costoUnit;
     var ganTotal = ganUnit * unidades;
+    margenPct = costoUnit > 0 ? (ganUnit / costoUnit) * 100 : 0;
 
     var descuento = {
       pct: descuentoPct,
       precio: precioFinal * (1 - descuentoPct / 100)
     };
     descuento.ganUnit = descuento.precio * (1 - comision) - costoUnit;
-    descuento.margenPct = descuento.precio > 0 ? (descuento.ganUnit / descuento.precio) * 100 : 0;
+    descuento.margenPct = costoUnit > 0 ? (descuento.ganUnit / costoUnit) * 100 : 0;
 
     var cuotas = {
       n: cuotasN,
@@ -128,30 +135,22 @@
     };
     cuotas.valor = cuotas.precio / cuotasN;
     cuotas.ganUnit = cuotas.precio * (1 - comision) - costoUnit;
-    cuotas.margenPct = cuotas.precio > 0 ? (cuotas.ganUnit / cuotas.precio) * 100 : 0;
+    cuotas.margenPct = costoUnit > 0 ? (cuotas.ganUnit / costoUnit) * 100 : 0;
 
-    /* segundo precio: para otras revendedoras (mismo costo, mismo canal) */
+    /* segundo precio: para otras revendedoras (misma base, mismo canal) */
     var reventa = {
       valido: true,
       margenPct: margenReventaPct,
-      sugerido: 0,
+      sugerido: precioConMargen(margenReventaPct),
       precio: 0,
       margenRealPct: 0,
       ganUnit: 0,
       ganTotal: 0
     };
-    var denomReventa = 1 - margenReventaPct / 100 - comision;
-    if (denomReventa <= 0.0001) {
-      reventa.valido = false;
-    } else {
-      reventa.sugerido = costoUnit / denomReventa;
-      reventa.precio = roundPrice(reventa.sugerido, redondeo, redondearArriba);
-      reventa.margenRealPct = reventa.precio > 0
-        ? (1 - comision - costoUnit / reventa.precio) * 100
-        : 0;
-      reventa.ganUnit = reventa.precio * (1 - comision) - costoUnit;
-      reventa.ganTotal = reventa.ganUnit * unidades;
-    }
+    reventa.precio = roundPrice(reventa.sugerido, redondeo, redondearArriba);
+    reventa.ganUnit = reventa.precio * (1 - comision) - costoUnit;
+    reventa.margenRealPct = costoUnit > 0 ? (reventa.ganUnit / costoUnit) * 100 : 0;
+    reventa.ganTotal = reventa.ganUnit * unidades;
 
     return {
       unidades: unidades,
@@ -162,7 +161,9 @@
       envioUnit: envioUnit,
       bolsa: bolsa,
       sticker: sticker,
+      costoBase: costoBase,
       costoUnit: costoUnit,
+      incluirExtras: incluirExtras,
       comisionPct: comisionPct,
       comisionUnit: comisionUnit,
       sugerido: sugerido,
