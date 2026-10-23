@@ -1681,9 +1681,37 @@
     });
   }
 
+  /* Los productos guardados por la versión anterior tenían importes netos.
+     Se recalculan con el modelo actual y se limpian los campos viejos. */
+  function migrateProducts() {
+    var changed = false;
+    products.forEach(function (p) {
+      if (!p || p.version !== 2) return;
+      if (p.data) {
+        var r = HF.compute(p.data);
+        p.precioFinal = r.precioFinal;
+        p.margenPct = r.margenPct;
+        p.precioReventa = r.reventa.valido ? r.reventa.precio : 0;
+        p.ganUnit = r.ganUnit;
+      } else {
+        p.precioFinal = p.precioConIva || p.precioFinal || 0;
+        p.precioReventa = p.precioReventaConIva || p.precioReventa || 0;
+        p.margenPct = p.margenPct || 0;
+        p.ganUnit = p.ganUnit || 0;
+      }
+      delete p.version;
+      delete p.precioConIva;
+      delete p.precioReventaConIva;
+      changed = true;
+    });
+    if (changed) persistProducts();
+    try { localStorage.removeItem('calcCostos.iva'); } catch (e) {}
+  }
+
   function init() {
     products = loadJSON(LS_PRODUCTS, []);
     if (!Array.isArray(products)) products = [];
+    migrateProducts();
     products.sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
 
     var saved = loadJSON(LS_FORM, null);
