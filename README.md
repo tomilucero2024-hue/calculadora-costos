@@ -1,6 +1,6 @@
 # 🧮 Calculadora de precios de venta — Reventa Argentina
 
-Calculadora local para definir precios de reventa en pesos argentinos. Los precios principales se muestran **sin IVA**; el precio con IVA (21%) queda en un desglose opcional.
+Calculadora local para definir precios de reventa en pesos argentinos.
 
 ## Cómo usarla
 
@@ -19,26 +19,23 @@ Los datos (productos guardados y último formulario) quedan en el navegador (`lo
 - **Cantidad de unidades** del pedido.
 
 ### Precios
-- **Precio de venta final sin IVA**, con margen sobre el precio final: `costo neto ÷ (1 − margen − comisión)`. El **precio con IVA** se obtiene multiplicando el neto por 1,21 y se muestra aparte, solo si activás el check.
-- **Precio de reventa sin IVA** para otras revendedoras, con su propio margen. Su precio con IVA también aparece en el desglose opcional.
+- **Precio de venta final** con margen sobre el precio final: `costo ÷ (1 − margen)`.
+- **Precio de reventa** para otras revendedoras, con su propio margen.
 - **Comisión del canal**: venta directa 0%, Mercado Libre 13%, tienda propia 3% u otro %.
-- **Descuento para promos**: muestra el precio con descuento y el margen que queda (sin IVA).
-- **Cuotas** con recargo total: muestra el valor de cada cuota y el margen (sin IVA).
-- **Redondeo del precio neto**: sin redondeo, múltiplos de $100 / $500 / $1.000, o terminaciones $X.900 / $X.990, con opción de redondear siempre hacia arriba. El precio con IVA se deriva del neto redondeado.
-- **Modo inverso "Ver margen"**: ingresás el precio de venta **sin IVA** que tenés en mente y te dice qué margen y ganancia te deja.
-
-> **Modelo sin IVA:** los costos se cargan con IVA incluido y se toman netos (`÷ 1,21`) para calcular el precio sin IVA. Esto asume que el IVA de tus costos es recuperable. Si sos monotributista, el costo que pagás no es recuperable y el análisis cambia.
+- **Descuento para promos**: muestra el precio con descuento y el margen que queda.
+- **Cuotas** con recargo total: muestra el valor de cada cuota y el margen.
+- **Redondeo**: sin redondeo, múltiplos de $100 / $500 / $1.000, o terminaciones $X.900 / $X.990, con opción de redondear siempre hacia arriba.
+- **Modo inverso "Ver margen"**: ingresás el precio que tenés en mente y te dice qué margen y ganancia te deja.
 
 ### Resultados
-- Precio final **sin IVA**, costo unitario neto, ganancia por unidad y total del pedido.
-- Barra de desglose: producto, transferencia, envío, bolsa, sticker, comisión y ganancia, todo sin IVA.
-- **Desglose de IVA opcional y oculto por defecto**: al activarlo muestra el precio final con IVA, el IVA que se agrega, y lo mismo para el precio de reventa.
+- Precio final, costo unitario, ganancia por unidad y total del pedido.
+- Barra de desglose: producto, transferencia, envío, bolsa, sticker, comisión y ganancia.
 - Avisos si el precio queda por debajo del costo, si el margen + comisión superan el 100%, o si los costos guardados tienen más de 30 días.
 
 ### Guardado y exportación
-- **Mis productos**: guardá, recuperá y borrá productos. Cada uno muestra el precio neto y, si activás el IVA, también el precio con IVA, la reventa y la ganancia. Los costos con más de 30 días se marcan en ámbar.
-- **📷 Imagen**: tarjeta PNG para WhatsApp con el precio final **sin IVA** (pensada para el cliente; no muestra costos ni ganancia). Si el IVA está activado, agrega el IVA y el total con IVA.
-- **🖨️ PDF**: presupuesto imprimible con el precio sin IVA. Si el IVA está activado, agrega el IVA y el total con IVA (guardar como PDF desde el diálogo de impresión).
+- **Mis productos**: guardá, recuperá y borrá productos. Cada uno muestra precio, precio de reventa, ganancia y fecha de actualización. Los costos con más de 30 días se marcan en ámbar.
+- **📷 Imagen**: tarjeta PNG para WhatsApp con el precio final (pensada para el cliente; no muestra costos ni ganancia).
+- **🖨️ PDF**: presupuesto imprimible (guardar como PDF desde el diálogo de impresión).
 
 ### Extras
 - Tema claro/oscuro (sigue la preferencia del sistema y se puede cambiar con el botón 🌙/☀️).

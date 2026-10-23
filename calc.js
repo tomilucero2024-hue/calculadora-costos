@@ -1,12 +1,6 @@
 /* ============================================================
    Calculadora de precios de venta — lógica de cálculo
    Funciona en el navegador (window.HFCalc) y en Node (module.exports)
-
-   Modelo:
-   - Los costos se cargan CON IVA incluido.
-   - El precio principal se calcula SIN IVA (neto), tomando el IVA
-     de los costos como recuperable.
-   - El precio con IVA se deriva del neto: neto × 1,21.
    ============================================================ */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
@@ -16,9 +10,6 @@
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-
-  var IVA = 0.21;
-  var IVA_FACTOR = 1 + IVA;
 
   /* Acepta "8000", "8.000", "8.000,50", "8000.5", "$ 8.000", "40%" */
   function parseMoney(value) {
@@ -72,27 +63,17 @@
     var moneda = i.moneda === 'USD' ? 'USD' : 'ARS';
     var costoIngresado = Math.max(0, num(i.costo, 0));
     var cotizacion = Math.max(0, num(i.cotizacion, 0));
-
-    /* costos cargados con IVA incluido */
-    var productoARSConIva = moneda === 'USD' ? costoIngresado * cotizacion : costoIngresado;
+    var productoARS = moneda === 'USD' ? costoIngresado * cotizacion : costoIngresado;
 
     var envio = Math.max(0, num(i.envio, 0));
     var envioModo = i.envioModo === 'unidad' ? 'unidad' : 'pedido';
-    var envioUnitConIva = envioModo === 'unidad' ? envio : envio / unidades;
+    var envioUnit = envioModo === 'unidad' ? envio : envio / unidades;
 
-    var bolsaConIva = Math.max(0, num(i.bolsa, 0));
-    var stickerConIva = Math.max(0, num(i.sticker, 0));
+    var bolsa = Math.max(0, num(i.bolsa, 0));
+    var sticker = Math.max(0, num(i.sticker, 0));
     var transferenciaPct = clamp(num(i.transferencia, 0), 0, 100);
-    var transferenciaUnitConIva = productoARSConIva * transferenciaPct / 100;
-    var costoUnitConIva = productoARSConIva + transferenciaUnitConIva + envioUnitConIva + bolsaConIva + stickerConIva;
-
-    /* costos netos (sin IVA) */
-    var productoARS = productoARSConIva / IVA_FACTOR;
-    var transferenciaUnit = transferenciaUnitConIva / IVA_FACTOR;
-    var envioUnit = envioUnitConIva / IVA_FACTOR;
-    var bolsa = bolsaConIva / IVA_FACTOR;
-    var sticker = stickerConIva / IVA_FACTOR;
-    var costoUnit = costoUnitConIva / IVA_FACTOR;
+    var transferenciaUnit = productoARS * transferenciaPct / 100;
+    var costoUnit = productoARS + transferenciaUnit + envioUnit + bolsa + sticker;
 
     var comisionPct = clamp(num(i.comision, 0), 0, 95);
     var comision = comisionPct / 100;
@@ -109,12 +90,12 @@
 
     var valido = true;
     var motivo = '';
-    var sugerido = 0;       // neto, sin redondear
-    var precioFinal = 0;    // neto
+    var sugerido = 0;
+    var precioFinal = 0;
     var margenPct = 0;
 
     if (modo === 'margen') {
-      precioFinal = Math.max(0, num(i.precioObjetivo, 0)); // el objetivo se ingresa sin IVA
+      precioFinal = Math.max(0, num(i.precioObjetivo, 0));
       sugerido = precioFinal;
       margenPct = precioFinal > 0 ? (1 - comision - costoUnit / precioFinal) * 100 : 0;
     } else {
@@ -129,21 +110,14 @@
       }
     }
 
-    var precioConIva = precioFinal * IVA_FACTOR;
-    var sugeridoConIva = sugerido * IVA_FACTOR;
-
-    var comisionUnit = precioFinal * comision;             // neta
-    var comisionUnitConIva = precioConIva * comision;      // con IVA
-    var ganUnit = precioFinal - comisionUnit - costoUnit;  // neta
-    var ganUnitConIva = precioConIva - comisionUnitConIva - costoUnitConIva;
+    var comisionUnit = precioFinal * comision;
+    var ganUnit = precioFinal - comisionUnit - costoUnit;
     var ganTotal = ganUnit * unidades;
-    var ganTotalConIva = ganUnitConIva * unidades;
 
     var descuento = {
       pct: descuentoPct,
       precio: precioFinal * (1 - descuentoPct / 100)
     };
-    descuento.precioConIva = descuento.precio * IVA_FACTOR;
     descuento.ganUnit = descuento.precio * (1 - comision) - costoUnit;
     descuento.margenPct = descuento.precio > 0 ? (descuento.ganUnit / descuento.precio) * 100 : 0;
 
@@ -152,9 +126,7 @@
       recargo: recargoPct,
       precio: precioFinal * (1 + recargoPct / 100)
     };
-    cuotas.precioConIva = cuotas.precio * IVA_FACTOR;
     cuotas.valor = cuotas.precio / cuotasN;
-    cuotas.valorConIva = cuotas.precioConIva / cuotasN;
     cuotas.ganUnit = cuotas.precio * (1 - comision) - costoUnit;
     cuotas.margenPct = cuotas.precio > 0 ? (cuotas.ganUnit / cuotas.precio) * 100 : 0;
 
@@ -163,14 +135,10 @@
       valido: true,
       margenPct: margenReventaPct,
       sugerido: 0,
-      sugeridoConIva: 0,
       precio: 0,
-      precioConIva: 0,
       margenRealPct: 0,
       ganUnit: 0,
-      ganUnitConIva: 0,
-      ganTotal: 0,
-      ganTotalConIva: 0
+      ganTotal: 0
     };
     var denomReventa = 1 - margenReventaPct / 100 - comision;
     if (denomReventa <= 0.0001) {
@@ -178,21 +146,16 @@
     } else {
       reventa.sugerido = costoUnit / denomReventa;
       reventa.precio = roundPrice(reventa.sugerido, redondeo, redondearArriba);
-      reventa.sugeridoConIva = reventa.sugerido * IVA_FACTOR;
-      reventa.precioConIva = reventa.precio * IVA_FACTOR;
       reventa.margenRealPct = reventa.precio > 0
         ? (1 - comision - costoUnit / reventa.precio) * 100
         : 0;
       reventa.ganUnit = reventa.precio * (1 - comision) - costoUnit;
-      reventa.ganUnitConIva = reventa.ganUnit * IVA_FACTOR;
       reventa.ganTotal = reventa.ganUnit * unidades;
-      reventa.ganTotalConIva = reventa.ganUnitConIva * unidades;
     }
 
     return {
       unidades: unidades,
       moneda: moneda,
-      /* costos netos */
       productoARS: productoARS,
       transferenciaPct: transferenciaPct,
       transferenciaUnit: transferenciaUnit,
@@ -200,14 +163,6 @@
       bolsa: bolsa,
       sticker: sticker,
       costoUnit: costoUnit,
-      /* costos con IVA */
-      productoARSConIva: productoARSConIva,
-      transferenciaUnitConIva: transferenciaUnitConIva,
-      envioUnitConIva: envioUnitConIva,
-      bolsaConIva: bolsaConIva,
-      stickerConIva: stickerConIva,
-      costoUnitConIva: costoUnitConIva,
-      /* precios y ganancia netos */
       comisionPct: comisionPct,
       comisionUnit: comisionUnit,
       sugerido: sugerido,
@@ -215,33 +170,15 @@
       margenPct: margenPct,
       ganUnit: ganUnit,
       ganTotal: ganTotal,
-      /* precios y ganancia con IVA */
-      comisionUnitConIva: comisionUnitConIva,
-      sugeridoConIva: sugeridoConIva,
-      precioConIva: precioConIva,
-      ganUnitConIva: ganUnitConIva,
-      ganTotalConIva: ganTotalConIva,
       valido: valido,
       motivo: motivo,
       reventa: reventa,
       descuento: descuento,
-      cuotas: cuotas,
-      iva: {
-        neto: precioFinal,
-        iva: precioConIva - precioFinal,
-        final: precioConIva,
-        reventa: {
-          neto: reventa.precio,
-          iva: reventa.precioConIva - reventa.precio,
-          final: reventa.precioConIva
-        }
-      }
+      cuotas: cuotas
     };
   }
 
   return {
-    IVA: IVA,
-    IVA_FACTOR: IVA_FACTOR,
     parseMoney: parseMoney,
     clamp: clamp,
     roundPrice: roundPrice,

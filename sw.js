@@ -1,5 +1,5 @@
 /* Service worker: cachea la app para que funcione sin internet. */
-const CACHE = 'calculadora-costos-v5';
+const CACHE = 'calculadora-costos-v6';
 const ASSETS = [
   './',
   './index.html',

@@ -1,7 +1,7 @@
 {
   "name": "Calculadora de precios de venta",
   "short_name": "Precios AR",
-  "description": "Calculadora de precios de reventa en Argentina: costos, envío, packaging, comisiones, promos y cuotas, con IVA incluido.",
+  "description": "Calculadora de precios de reventa en Argentina: costos, envío, packaging, comisiones, promos y cuotas. Precios finales en pesos argentinos.",
   "lang": "es-AR",
   "start_url": "./",
   "scope": "./",
